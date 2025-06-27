@@ -1,0 +1,519 @@
+{% extends "base.html" %}
+
+{% block title %}Generación Automática de Cargos{% endblock %}
+
+{% block header %}🚀 Generación Automática de Cargos{% endblock %}
+
+{% block head %}
+<style>
+    * {
+        box-sizing: border-box;
+    }
+    
+    .generar-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 1rem;
+    }
+    
+    /* Header section */
+    .page-header {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        padding: 2rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 16px;
+        box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .page-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -20%;
+        width: 60%;
+        height: 120%;
+        background: rgba(255,255,255,0.1);
+        border-radius: 50%;
+        animation: float 6s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+        0%, 100% { transform: translateY(0px) rotate(0deg); }
+        50% { transform: translateY(-15px) rotate(180deg); }
+    }
+    
+    @media (min-width: 768px) {
+        .page-header {
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+        }
+    }
+    
+    .page-title {
+        font-size: clamp(1.5rem, 4vw, 2rem);
+        font-weight: 300;
+        margin: 0;
+        z-index: 1;
+        position: relative;
+    }
+    
+    .header-actions {
+        z-index: 1;
+        position: relative;
+    }
+    
+    /* Cards */
+    .card {
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+        background: white;
+        overflow: hidden;
+    }
+    
+    .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    }
+    
+    .card-header {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-bottom: 1px solid #dee2e6;
+        padding: 1.5rem;
+        font-weight: 600;
+        color: #495057;
+    }
+    
+    .card-body {
+        padding: 2rem;
+    }
+    
+    /* Form styles */
+    .form-label {
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 0.75rem;
+    }
+    
+    .form-control, .form-select {
+        border: 2px solid #e9ecef;
+        border-radius: 12px;
+        padding: 0.875rem 1rem;
+        font-size: 0.95rem;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.25rem rgba(102, 126, 234, 0.15);
+    }
+    
+    .form-check-input {
+        width: 1.25rem;
+        height: 1.25rem;
+        border-radius: 6px;
+        border: 2px solid #dee2e6;
+    }
+    
+    .form-check-input:checked {
+        background-color: #667eea;
+        border-color: #667eea;
+    }
+    
+    /* Button styles */
+    .btn {
+        padding: 0.875rem 2rem;
+        border-radius: 12px;
+        font-weight: 600;
+        border: none;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 1rem;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        color: white;
+    }
+    
+    .btn-outline {
+        background: white;
+        border: 2px solid #e9ecef;
+        color: #6c757d;
+    }
+    
+    .btn-outline:hover {
+        background: #f8f9fa;
+        border-color: #667eea;
+        color: #667eea;
+    }
+    
+    /* Alert styles */
+    .alert {
+        border: none;
+        border-radius: 12px;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .alert-success {
+        background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+        color: #155724;
+        border-left: 4px solid #28a745;
+    }
+    
+    .alert-warning {
+        background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+        color: #856404;
+        border-left: 4px solid #ffc107;
+    }
+    
+    .alert-danger {
+        background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+        color: #721c24;
+        border-left: 4px solid #dc3545;
+    }
+    
+    /* Statistics cards */
+    .stat-card {
+        text-align: center;
+        padding: 1.5rem;
+        border-radius: 16px;
+        color: white;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -20%;
+        width: 60%;
+        height: 120%;
+        background: rgba(255,255,255,0.1);
+        border-radius: 50%;
+        animation: float 8s ease-in-out infinite;
+    }
+    
+    .stat-card.primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .stat-card.success {
+        background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
+    }
+    
+    .stat-card.info {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+    
+    .stat-card.warning {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+    
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin: 0;
+        z-index: 1;
+        position: relative;
+    }
+    
+    .stat-label {
+        font-size: 0.9rem;
+        opacity: 0.9;
+        margin: 0;
+        z-index: 1;
+        position: relative;
+    }
+    
+    /* Process description */
+    .process-info {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .process-title {
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .process-steps {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .process-steps li {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .process-steps li:last-child {
+        border-bottom: none;
+    }
+    
+    .step-icon {
+        width: 1.5rem;
+        height: 1.5rem;
+        border-radius: 50%;
+        background: #667eea;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: bold;
+    }
+    
+    /* Form container */
+    .form-container {
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .page-header {
+            padding: 1.5rem;
+        }
+        
+        .card-body, .form-container {
+            padding: 1.5rem;
+        }
+        
+        .btn {
+            width: 100%;
+            justify-content: center;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="generar-container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1 class="page-title">
+            🚀 Generación Automática de Cargos
+        </h1>
+        <div class="header-actions">
+            <a href="/admin/pagos" class="btn btn-outline">
+                ← Volver a Pagos
+            </a>
+        </div>
+    </div>
+
+    <!-- Alertas de estado -->
+    {% if request.query_params.get('success') %}
+    <div class="alert alert-success">
+        <h5><i class="fas fa-check-circle"></i> ¡Procesamiento Completado Exitosamente!</h5>
+        <p><strong>Período:</strong> {{ request.query_params.get('mes') }}/{{ request.query_params.get('año') }}</p>
+        <div class="row mt-3">
+            <div class="col-md-4">
+                <strong>{{ request.query_params.get('cuotas_generadas', 0) }}</strong> Cuotas Generadas<br>
+                <small class="text-muted">${{ "%.2f"|format(request.query_params.get('monto_cuotas')|float) }}</small>
+            </div>
+            <div class="col-md-4">
+                <strong>{{ request.query_params.get('intereses_generados', 0) }}</strong> Intereses Generados<br>
+                <small class="text-muted">${{ "%.2f"|format(request.query_params.get('monto_intereses')|float) }}</small>
+            </div>
+            <div class="col-md-4">
+                <strong>{{ request.query_params.get('saldos_aplicados', 0) }}</strong> Saldos Aplicados<br>
+                <small class="text-muted">${{ "%.2f"|format(request.query_params.get('monto_saldos')|float) }}</small>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if request.query_params.get('warning') == 'ya_procesado' %}
+    <div class="alert alert-warning">
+        <h5><i class="fas fa-exclamation-triangle"></i> Período Ya Procesado</h5>
+        <p>El mes {{ request.query_params.get('mes') }}/{{ request.query_params.get('año') }} ya fue procesado anteriormente. Use la opción "Forzar reprocesamiento" si desea regenerar los cargos.</p>
+    </div>
+    {% endif %}
+
+    {% if request.query_params.get('error') %}
+    <div class="alert alert-danger">
+        <h5><i class="fas fa-exclamation-circle"></i> Error en el Procesamiento</h5>
+        <p>{{ request.query_params.get('detalles', 'Ocurrió un error durante la generación de cargos.') }}</p>
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <!-- Información del Proceso -->
+        <div class="col-md-8">
+            <div class="process-info">
+                <h5 class="process-title">
+                    <i class="fas fa-cogs"></i> ¿Qué hace este proceso?
+                </h5>
+                <ul class="process-steps">
+                    <li>
+                        <span class="step-icon">1</span>
+                        <span>Genera <strong>cuotas ordinarias</strong> para todos los apartamentos configurados</span>
+                    </li>
+                    <li>
+                        <span class="step-icon">2</span>
+                        <span>Calcula automáticamente <strong>intereses moratorios</strong> sobre pagos vencidos</span>
+                    </li>
+                    <li>
+                        <span class="step-icon">3</span>
+                        <span>Aplica <strong>saldos a favor</strong> automáticamente al próximo período</span>
+                    </li>
+                    <li>
+                        <span class="step-icon">4</span>
+                        <span>Registra <strong>auditoría completa</strong> y previene duplicados</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Formulario -->
+            <div class="form-container">
+                <h5 class="mb-3">
+                    <i class="fas fa-calendar-alt"></i> Seleccionar Período
+                </h5>
+                
+                <form method="post" action="/admin/pagos/generar-cargos" id="formGenerarCargos">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label for="año" class="form-label">Año</label>
+                            <select class="form-select" name="año" id="año" required>
+                                {% for i in range(año_actual - 1, año_actual + 2) %}
+                                <option value="{{ i }}" {% if i == año_actual %}selected{% endif %}>{{ i }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="mes" class="form-label">Mes</label>
+                            <select class="form-select" name="mes" id="mes" required>
+                                {% for i in range(1, 13) %}
+                                <option value="{{ i }}" {% if i == mes_actual %}selected{% endif %}>
+                                    {{ ["", "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"][i] }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Opción de forzar -->
+                    <div class="mb-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="forzar" id="forzar" value="true">
+                            <label class="form-check-label" for="forzar">
+                                <strong>Forzar reprocesamiento</strong>
+                                <br><small class="text-muted">Regenerar cargos aunque el período ya haya sido procesado</small>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Botón de acción -->
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary" id="btnGenerar">
+                            <i class="fas fa-rocket"></i> Ejecutar Proceso Completo
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Panel de Estadísticas -->
+        <div class="col-md-4">
+            <!-- Estadísticas -->
+            <div class="row mb-3">
+                <div class="col-12 mb-3">
+                    <div class="stat-card primary">
+                        <h3 class="stat-number">{{ total_apartamentos }}</h3>
+                        <p class="stat-label">Total Apartamentos</p>
+                    </div>
+                </div>
+                <div class="col-12 mb-3">
+                    <div class="stat-card success">
+                        <h3 class="stat-number">{{ apartamentos_configurados }}</h3>
+                        <p class="stat-label">Configurados</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Últimos Procesamientos -->
+            <div class="card">
+                <div class="card-header">
+                    <h6><i class="fas fa-history"></i> Últimos Procesamientos</h6>
+                </div>
+                <div class="card-body" style="padding: 1rem;">
+                    {% if procesamientos %}
+                        {% for proc in procesamientos[:5] %}
+                        <div class="d-flex align-items-center mb-2 pb-2 border-bottom">
+                            <div class="me-2">
+                                <i class="fas fa-check-circle text-success"></i>
+                            </div>
+                            <div>
+                                <div class="fw-bold">{{ "{:02d}".format(proc.mes) }}/{{ proc.año }}</div>
+                                <small class="text-muted">{{ proc.tipo_procesamiento }}</small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center text-muted">
+                            <i class="fas fa-clock mb-2"></i>
+                            <div>Sin procesamientos previos</div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Manejar envío del formulario
+document.getElementById('formGenerarCargos').addEventListener('submit', function(e) {
+    const btnGenerar = document.getElementById('btnGenerar');
+    const año = document.getElementById('año').value;
+    const mes = document.getElementById('mes').value;
+    
+    if (!confirm(`¿Confirma que desea ejecutar el proceso completo para ${mes}/${año}?\n\nEsto incluye:\n• Cuotas ordinarias\n• Intereses moratorios\n• Aplicación de saldos a favor`)) {
+        e.preventDefault();
+        return false;
+    }
+    
+    btnGenerar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
+    btnGenerar.disabled = true;
+    
+    // El formulario se enviará normalmente después de esto
+});
+</script>
+{% endblock %}

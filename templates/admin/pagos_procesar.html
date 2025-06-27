@@ -1,0 +1,859 @@
+{% extends "base.html" %}
+
+{% block title %}Procesar Pagos de Cuotas{% endblock %}
+
+{% block header %}💳 Procesamiento de Pagos{% endblock %}
+
+{% block head %}
+<style>
+    .procesar-container {
+        display: grid;
+        gap: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .procesar-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2.5rem;
+        border-radius: 20px;
+        box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 1rem;
+    }
+    
+    .procesar-header h1 {
+        margin: 0 0 0.5rem 0;
+        font-size: 2.5rem;
+        font-weight: 300;
+        text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+    
+    .back-btn {
+        background: rgba(255,255,255,0.2);
+        color: white;
+        border: 1px solid rgba(255,255,255,0.3);
+        padding: 0.8rem 1.5rem;
+        border-radius: 25px;
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+    
+    .back-btn:hover {
+        background: rgba(255,255,255,0.3);
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+    
+    .success-alert {
+        background: linear-gradient(135deg, #2ecc71, #27ae60);
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 15px;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 5px 15px rgba(46, 204, 113, 0.3);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .error-alert {
+        background: linear-gradient(135deg, #e74c3c, #c0392b);
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 15px;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .summary-card {
+        background: rgba(255,255,255,0.95);
+        backdrop-filter: blur(20px);
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        border: 1px solid rgba(255,255,255,0.2);
+        margin-bottom: 2rem;
+    }
+    
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 2rem;
+        text-align: center;
+    }
+    
+    .summary-item h3 {
+        font-size: 2rem;
+        margin: 0;
+        font-weight: 700;
+    }
+    
+    .summary-item small {
+        color: #6c757d;
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+    
+    .text-danger { color: #e74c3c !important; }
+    .text-warning { color: #f39c12 !important; }
+    .text-info { color: #3498db !important; }
+    .text-primary { color: #667eea !important; }
+    
+    .pagos-card {
+        background: rgba(255,255,255,0.95);
+        backdrop-filter: blur(20px);
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        border: 1px solid rgba(255,255,255,0.2);
+    }
+    
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #e2e8f0;
+    }
+    
+    .card-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #2d3748;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .filter-buttons {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    
+    .filter-btn {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .filter-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+    
+    .pagos-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+        background: white;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    }
+    
+    .pagos-table th {
+        background: linear-gradient(135deg, #4a5568, #2d3748);
+        color: white;
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .pagos-table td {
+        padding: 1rem;
+        border-bottom: 1px solid #e2e8f0;
+        vertical-align: middle;
+    }
+    
+    .pagos-table tr:nth-child(even) {
+        background: #f8fafc;
+    }
+    
+    .pagos-table tr:hover {
+        background: #e6fffa;
+        transition: all 0.2s ease;
+    }
+    
+    .apartment-info {
+        font-weight: 600;
+        color: #2d3748;
+        font-size: 1.1rem;
+    }
+    
+    .saldo-badge {
+        background: linear-gradient(135deg, #e74c3c, #c0392b);
+        color: white;
+        padding: 0.4rem 0.8rem;
+        border-radius: 15px;
+        font-weight: 600;
+        font-size: 1rem;
+    }
+    
+    .periodo-badge {
+        background: linear-gradient(135deg, #f39c12, #e67e22);
+        color: white;
+        padding: 0.2rem 0.5rem;
+        border-radius: 10px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        margin: 0.1rem;
+        display: inline-block;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    
+    .action-btn {
+        padding: 0.4rem 0.8rem;
+        border: none;
+        border-radius: 15px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+        text-decoration: none;
+    }
+    
+    .btn-warning {
+        background: linear-gradient(135deg, #f39c12, #e67e22);
+        color: white;
+    }
+    
+    .btn-success {
+        background: linear-gradient(135deg, #2ecc71, #27ae60);
+        color: white;
+    }
+    
+    .btn-outline {
+        background: transparent;
+        border: 2px solid #667eea;
+        color: #667eea;
+    }
+    
+    .action-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+    
+    .no-saldos {
+        text-align: center;
+        padding: 3rem;
+        color: #6c757d;
+    }
+    
+    .no-saldos .icon {
+        font-size: 4rem;
+        color: #2ecc71;
+        margin-bottom: 1rem;
+    }
+    
+    .table-container {
+        overflow-x: auto;
+        border-radius: 15px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    /* Modal styles */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+    
+    .modal-content {
+        background: white;
+        padding: 2rem;
+        border-radius: 20px;
+        max-width: 600px;
+        width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #e2e8f0;
+    }
+    
+    .modal-title {
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: #2d3748;
+        margin: 0;
+    }
+    
+    .close-btn {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: #6c757d;
+    }
+    
+    .form-group {
+        margin-bottom: 1rem;
+    }
+    
+    .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: #2d3748;
+    }
+    
+    .form-input {
+        width: 100%;
+        padding: 0.8rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .form-input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .input-group {
+        display: flex;
+        align-items: center;
+    }
+    
+    .input-prefix {
+        background: #e2e8f0;
+        padding: 0.8rem;
+        border: 2px solid #e2e8f0;
+        border-right: none;
+        border-radius: 10px 0 0 10px;
+        font-weight: 500;
+    }
+    
+    .input-group .form-input {
+        border-radius: 0 10px 10px 0;
+        border-left: none;
+    }
+    
+    .form-select {
+        width: 100%;
+        padding: 0.8rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        font-size: 1rem;
+        background: white;
+        cursor: pointer;
+    }
+    
+    .form-textarea {
+        width: 100%;
+        padding: 0.8rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        font-size: 1rem;
+        resize: vertical;
+        min-height: 80px;
+    }
+    
+    .info-alert {
+        background: #e8f4fd;
+        border: 1px solid #bee5eb;
+        color: #0c5460;
+        padding: 1rem;
+        border-radius: 10px;
+        margin: 1rem 0;
+    }
+    
+    .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+        margin-top: 1.5rem;
+        padding-top: 1rem;
+        border-top: 1px solid #e2e8f0;
+    }
+    
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 0.8rem 1.5rem;
+        border-radius: 15px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        border: none;
+        padding: 0.8rem 1.5rem;
+        border-radius: 15px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    @media (max-width: 768px) {
+        .summary-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .filter-buttons {
+            flex-direction: column;
+        }
+        
+        .action-buttons {
+            flex-direction: column;
+        }
+        
+        .modal-content {
+            margin: 1rem;
+            width: calc(100% - 2rem);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="procesar-container">
+    <div class="procesar-header">
+        <h1>💳 Procesar Pagos de Cuotas Ordinarias</h1>
+        <a href="/admin/pagos" class="back-btn">
+            ← Volver a Pagos
+        </a>
+    </div>
+
+    {% if request.query_params.get('success') %}
+    <div class="success-alert">
+        <span style="font-size: 1.2rem;">✅</span>
+        <div>
+            <strong>Pago procesado exitosamente!</strong>
+            {% if request.query_params.get('auto_payment') %}
+            <br>Procesamiento automático completado
+            {% endif %}
+            {% if request.query_params.get('monto_procesado') %}
+            <br>Monto procesado: ${{ "{:,.2f}".format(request.query_params.get('monto_procesado')|float) }}
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if request.query_params.get('error') %}
+    <div class="error-alert">
+        <span style="font-size: 1.2rem;">⚠️</span>
+        <div>
+            <strong>Error al procesar el pago</strong>
+            {% if request.query_params.get('details') %}
+            <br>{{ request.query_params.get('details') }}
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Resumen -->
+    {% if apartamentos_con_saldo %}
+    <div class="summary-card">
+        <h2 class="card-title" style="text-align: center; margin-bottom: 1.5rem;">
+            📊 Resumen de Apartamentos con Saldos Pendientes
+        </h2>
+        <div class="summary-grid">
+            <div class="summary-item">
+                <h3 class="text-danger">{{ apartamentos_con_saldo|length }}</h3>
+                <small>Apartamentos con Saldo</small>
+            </div>
+            <div class="summary-item">
+                <h3 class="text-warning">${{ "%.2f"|format(apartamentos_con_saldo|sum(attribute='saldo_total')) }}</h3>
+                <small>Total Pendiente</small>
+            </div>
+            <div class="summary-item">
+                <h3 class="text-info">${{ "%.2f"|format((apartamentos_con_saldo|sum(attribute='saldo_total')) / (apartamentos_con_saldo|length) if apartamentos_con_saldo else 0) }}</h3>
+                <small>Saldo Promedio</small>
+            </div>
+            <div class="summary-item">
+                <h3 class="text-primary">{{ apartamentos_con_saldo|selectattr('saldo_total', '>', 1000)|list|length }}</h3>
+                <small>Saldos > $1,000</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="pagos-card">
+        <div class="card-header">
+            <h2 class="card-title">
+                📋 Apartamentos con Saldos Pendientes
+            </h2>
+            <div class="filter-buttons">
+                <button type="button" class="filter-btn" onclick="filtrarSaldos('todos')">
+                    Todos ({{ apartamentos_con_saldo|length }})
+                </button>
+                <button type="button" class="filter-btn" onclick="filtrarSaldos('alto')">
+                    Saldo Alto ({{ apartamentos_con_saldo|selectattr('saldo_total', '>', 1000)|list|length }})
+                </button>
+                <button type="button" class="filter-btn" onclick="filtrarSaldos('critico')">
+                    Crítico ({{ apartamentos_con_saldo|selectattr('saldo_total', '>', 2000)|list|length }})
+                </button>
+            </div>
+        </div>
+        
+        <div class="table-container">
+            <table class="pagos-table" id="tablaApartamentos">
+                <thead>
+                    <tr>
+                        <th>Apartamento</th>
+                        <th>Propietario</th>
+                        <th style="text-align: right;">Saldo Total</th>
+                        <th>Cargos Pendientes</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in apartamentos_con_saldo %}
+                    <tr data-saldo="{{ item.saldo_total }}" class="fila-apartamento">
+                        <td>
+                            <div class="apartment-info">{{ item.apartamento.identificador }}</div>
+                            <!--small style="color: #6c757d;">Coef: {{ "%.3f"|format(item.apartamento.coeficiente_copropiedad) }}</small-->
+                        </td>
+                        <td>
+                            {% if item.apartamento.propietario %}
+                                <div>
+                                    <strong>{{ item.apartamento.propietario.nombre_completo }}</strong><br>
+                                    <small style="color: #6c757d;">
+                                        📧 {{ item.apartamento.propietario.email }}<br>
+                                        📞 {{ item.apartamento.propietario.telefono }}
+                                    </small>
+                                </div>
+                            {% else %}
+                                <span style="color: #a0a0a0;">Sin propietario asignado</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: right;">
+                            <span class="saldo-badge">${{ "%.2f"|format(item.saldo_total) }}</span>
+                        </td>
+                        <td>
+                            <!--div style="display: flex; flex-wrap: wrap; gap: 0.2rem;">
+                                {% for cargo in item.cargos_pendientes[:3] %}
+                                <span class="periodo-badge">
+                                    {{ ["", "Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"][cargo.mes_aplicable] }} {{ cargo.año_aplicable }}
+                                </span>
+                                {% endfor %}
+                                {% if item.cargos_pendientes|length > 3 %}
+                                <span class="periodo-badge" style="background: #6c757d;">+{{ item.cargos_pendientes|length - 3 }} más</span>
+                                {% endif %}
+                            </div-->
+                            <small style="color: #6c757d;">{{ item.cargos_pendientes|length }} período(s) pendiente(s)</small>
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <button type="button" class="action-btn btn-warning" onclick="abrirModalPagoAutomatico({{ item.apartamento.id }}, '{{ item.apartamento.identificador|replace("'", "\\'") }}', {{ item.saldo_total }})" title="Pagar Automático">
+                                    ✨ Pagar
+                                </button>
+                                <!--button type="button" class="action-btn btn-success" onclick="abrirModalPago({{ item.apartamento.id }}, '{{ item.apartamento.identificador|replace("'", "\\'") }}', {{ item.saldo_total }})" title="Procesar Pago Manual">
+                                    💰
+                                </button>
+                                <a href="/admin/registros-financieros/{{ item.apartamento.id }}" class="action-btn btn-outline" title="Ver Movimientos">
+                                    👁️
+                                </a>
+                                <button type="button" class="action-btn btn-outline" onclick="verDetalles({{ item.apartamento.id }})" title="Ver Detalles">
+                                    ℹ️
+                                </button-->
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="pagos-card">
+        <div class="no-saldos">
+            <div class="icon">✅</div>
+            <h4 style="color: #2ecc71;">¡Excelente!</h4>
+            <p>No hay apartamentos con saldos pendientes de cuotas ordinarias.</p>
+            <a href="/admin/pagos" class="action-btn btn-primary">
+                ← Volver al Panel de Pagos
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal Pago Manual -->
+<div id="modalProcesarPago" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">💰 Procesar Pago - Apartamento <span id="apartamentoModal"></span></h3>
+            <button class="close-btn" onclick="cerrarModalPago()">&times;</button>
+        </div>
+        
+        <form method="post" action="/admin/pagos/procesar" id="formProcesarPago">
+            <input type="hidden" name="apartamento_id" id="apartamentoId">
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label class="form-label">Monto del Pago *</label>
+                    <div class="input-group">
+                        <span class="input-prefix">$</span>
+                        <input type="number" class="form-input" name="monto_pago" id="monto_pago" step="0.01" min="0.01" required>
+                    </div>
+                    <small style="color: #6c757d;">Saldo pendiente: $<span id="saldoPendiente"></span></small>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Fecha de Registro *</label>
+                    <input type="date" class="form-input" name="fecha_pago" id="fecha_pago" required>
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label class="form-label">Mes Aplicable *</label>
+                    <select class="form-select" name="mes_aplicable" id="mes_aplicable" required>
+                        <option value="">Seleccionar mes...</option>
+                        {% for i in range(1, 13) %}
+                        <option value="{{ i }}">{{ ["", "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"][i] }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Año Aplicable *</label>
+                    <select class="form-select" name="año_aplicable" id="año_aplicable" required>
+                        {% for i in range(2020, 2030) %}
+                        <option value="{{ i }}" {% if i == now().year %}selected{% endif %}>{{ i }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Referencia de Pago</label>
+                <input type="text" class="form-input" name="referencia_pago" id="referencia_pago" placeholder="Ej: Transferencia, Cheque #1234, etc.">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Descripción Adicional</label>
+                <textarea class="form-textarea" name="descripcion" id="descripcion" placeholder="Información adicional sobre el pago..."></textarea>
+            </div>
+            
+            <div class="info-alert">
+                <strong>ℹ️ Información:</strong> Este pago se registrará como un abono en el estado de cuenta del apartamento.
+            </div>
+            
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="cerrarModalPago()">Cancelar</button>
+                <button type="submit" class="btn-primary">💾 Procesar Pago</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Pago Automático -->
+<div id="modalPagoAutomatico" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">✨ Pago Automático - Apartamento <span id="apartamentoModalAuto"></span></h3>
+            <button class="close-btn" onclick="cerrarModalPagoAutomatico()">&times;</button>
+        </div>
+        
+        <div id="resumenDeuda" class="info-alert">
+            <strong>Cargando información de deuda...</strong>
+        </div>
+        
+        <form method="post" action="/admin/pagos/pago-automatico" id="formPagoAutomatico">
+            <input type="hidden" name="apartamento_id" id="apartamentoIdAuto">
+            
+            <div class="form-group">
+                <label class="form-label">Monto del Pago *</label>
+                <div class="input-group">
+                    <span class="input-prefix">$</span>
+                    <input type="number" class="form-input" name="monto_pago" id="monto_pago_auto" step="0.01" min="0.01" required>
+                </div>
+                <small style="color: #6c757d;">✨ El sistema distribuirá automáticamente el pago</small>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Referencia del Pago</label>
+                <input type="text" class="form-input" name="referencia_pago" id="referencia_auto" placeholder="Ej: Transferencia, Cheque #1234, etc.">
+            </div>
+            
+            <div style="background: #fff3cd; border: 1px solid #ffc107; color: #664d03; padding: 1rem; border-radius: 10px; margin: 1rem 0;">
+                <strong>⚡ Distribución Automática:</strong>
+                <ul style="margin: 0.5rem 0 0 1.5rem;">
+                    <li>1º Intereses por mora (más antiguos primero)</li>
+                    <li>2º Cuotas ordinarias (más antiguos primero)</li>
+                    <li>3º Exceso si el pago supera la deuda</li>
+                </ul>
+            </div>
+            
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="cerrarModalPagoAutomatico()">Cancelar</button>
+                <button type="submit" class="btn-primary">✨ Procesar Pago Automático</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Funciones de filtrado
+function filtrarSaldos(tipo) {
+    const filas = document.querySelectorAll('.fila-apartamento');
+    filas.forEach(fila => {
+        const saldo = parseFloat(fila.dataset.saldo);
+        let mostrar = true;
+        
+        switch(tipo) {
+            case 'alto':
+                mostrar = saldo > 1000;
+                break;
+            case 'critico':
+                mostrar = saldo > 2000;
+                break;
+            case 'todos':
+            default:
+                mostrar = true;
+                break;
+        }
+        
+        fila.style.display = mostrar ? '' : 'none';
+    });
+}
+
+// Modal Pago Manual
+function abrirModalPago(apartamentoId, apartamentoIdentificador, saldoTotal) {
+    document.getElementById('modalProcesarPago').style.display = 'flex';
+    document.getElementById('apartamentoId').value = apartamentoId;
+    document.getElementById('apartamentoModal').textContent = apartamentoIdentificador;
+    document.getElementById('saldoPendiente').textContent = saldoTotal.toFixed(2);
+    document.getElementById('monto_pago').value = saldoTotal.toFixed(2);
+    
+    // Establecer fecha actual
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('fecha_pago').value = today;
+}
+
+function cerrarModalPago() {
+    document.getElementById('modalProcesarPago').style.display = 'none';
+}
+
+// Modal Pago Automático
+function abrirModalPagoAutomatico(apartamentoId, apartamentoIdentificador, saldoTotal) {
+    document.getElementById('modalPagoAutomatico').style.display = 'flex';
+    document.getElementById('apartamentoIdAuto').value = apartamentoId;
+    document.getElementById('apartamentoModalAuto').textContent = apartamentoIdentificador;
+    document.getElementById('monto_pago_auto').value = saldoTotal.toFixed(2);
+    
+    cargarResumenDeuda(apartamentoId);
+}
+
+function cerrarModalPagoAutomatico() {
+    document.getElementById('modalPagoAutomatico').style.display = 'none';
+}
+
+function cargarResumenDeuda(apartamentoId) {
+    const resumenDiv = document.getElementById('resumenDeuda');
+    resumenDiv.innerHTML = '<strong>Cargando información de deuda...</strong>';
+    
+    // Simular carga (en una implementación real haríamos fetch)
+    setTimeout(() => {
+        resumenDiv.innerHTML = `
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; text-align: center;">
+                <div>
+                    <strong style="color: #e74c3c;">$0.00</strong><br>
+                    <small>Total Deuda</small>
+                </div>
+                <div>
+                    <strong style="color: #f39c12;">$0.00</strong><br>
+                    <small>Intereses</small>
+                </div>
+                <div>
+                    <strong style="color: #3498db;">$0.00</strong><br>
+                    <small>Cuotas</small>
+                </div>
+            </div>
+        `;
+    }, 1000);
+}
+
+function verDetalles(apartamentoId) {
+    alert('Funcionalidad en desarrollo: Ver detalles del apartamento ' + apartamentoId);
+}
+
+// Cerrar modales al hacer clic fuera
+window.onclick = function(event) {
+    const modals = document.querySelectorAll('.modal-overlay');
+    modals.forEach(modal => {
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    });
+}
+
+// Validación de formularios
+document.getElementById('formProcesarPago')?.addEventListener('submit', function(e) {
+    const monto = parseFloat(document.getElementById('monto_pago').value);
+    const saldo = parseFloat(document.getElementById('saldoPendiente').textContent);
+    
+    if (monto > saldo && !confirm('El monto del pago es mayor al saldo pendiente. ¿Desea continuar?')) {
+        e.preventDefault();
+    }
+});
+
+document.getElementById('formPagoAutomatico')?.addEventListener('submit', function(e) {
+    const monto = parseFloat(document.getElementById('monto_pago_auto').value);
+    
+    if (monto <= 0) {
+        alert('El monto debe ser mayor a cero');
+        e.preventDefault();
+        return;
+    }
+    
+    if (!confirm('¿Confirma procesar el pago automático? El sistema distribuirá el dinero automáticamente.')) {
+        e.preventDefault();
+    }
+});
+</script>
+{% endblock %}

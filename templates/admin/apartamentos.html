@@ -1,0 +1,1136 @@
+{% extends "base.html" %}
+
+{% block title %}Gestión de Apartamentos{% endblock %}
+
+{% block header %}🏠 Gestión de Apartamentos{% endblock %}
+
+{% block head %}
+<style>
+    * {
+        box-sizing: border-box;
+    }
+    
+    .apartamentos-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 1rem;
+    }
+    
+    /* Header section - Responsive Flexbox */
+    .page-header {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        padding: 2rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 16px;
+        box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+        margin-bottom: 2rem;
+    }
+    
+    @media (min-width: 768px) {
+        .page-header {
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+        }
+    }
+    
+    .page-title {
+        font-size: clamp(1.5rem, 4vw, 2rem);
+        font-weight: 300;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-align: center;
+    }
+    
+    @media (min-width: 768px) {
+        .page-title {
+            text-align: left;
+        }
+    }
+    
+    .add-btn {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        padding: 0.75rem 1.5rem;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        backdrop-filter: blur(10px);
+        width: 100%;
+        max-width: 300px;
+        margin: 0 auto;
+    }
+    
+    @media (min-width: 768px) {
+        .add-btn {
+            width: auto;
+            margin: 0;
+        }
+    }
+    
+    .add-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+        border-color: rgba(255, 255, 255, 0.5);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    }
+    
+    /* Alert messages */
+    .alert {
+        padding: 1rem 1.5rem;
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+        border-left: 4px solid;
+        position: relative;
+        animation: slideIn 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    
+    .alert-error {
+        background: #fef2f2;
+        border-color: #dc2626;
+        color: #991b1b;
+    }
+    
+    .alert-success {
+        background: #f0fdf4;
+        border-color: #16a34a;
+        color: #166534;
+    }
+    
+    .alert-close {
+        margin-left: auto;
+        background: none;
+        border: none;
+        font-size: 1.2rem;
+        cursor: pointer;
+        color: inherit;
+        padding: 0;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: background 0.2s ease;
+        flex-shrink: 0;
+    }
+    
+    .alert-close:hover {
+        background: rgba(0, 0, 0, 0.1);
+    }
+    
+    @keyframes slideIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Statistics section */
+    .stats-section {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    @media (min-width: 640px) {
+        .stats-section {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .stats-section {
+            grid-template-columns: repeat(4, 1fr);
+        }
+    }
+
+    .stat-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e5e7eb;
+        text-align: center;
+    }
+
+    .stat-number {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
+        color: #6b7280;
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+
+    .stat-primary { border-top: 4px solid #3b82f6; }
+    .stat-primary .stat-number { color: #3b82f6; }
+
+    .stat-success { border-top: 4px solid #10b981; }
+    .stat-success .stat-number { color: #10b981; }
+
+    .stat-warning { border-top: 4px solid #f59e0b; }
+    .stat-warning .stat-number { color: #f59e0b; }
+
+    .stat-info { border-top: 4px solid #8b5cf6; }
+    .stat-info .stat-number { color: #8b5cf6; }
+    
+    /* Card Grid Layout */
+    .apartamentos-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+        padding: 1.5rem;
+    }
+
+    @media (min-width: 640px) {
+        .apartamentos-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .apartamentos-grid {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+        }
+    }
+
+    @media (min-width: 1400px) {
+        .apartamentos-grid {
+            grid-template-columns: repeat(4, 1fr);
+        }
+    }
+
+    /* Cards Container */
+    .cards-container {
+        background: white;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .use-cards .cards-container {
+        background: transparent;
+        box-shadow: none;
+        border: none;
+        border-radius: 0;
+    }
+
+    /* Individual Card Styling */
+    .apartamento-card {
+        background: white;
+        border-radius: 16px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+        border: 1px solid #e5e7eb;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        min-height: 340px;
+    }
+
+    .apartamento-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+        border-color: #3b82f6;
+    }
+
+    .apartamento-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    /* Card Header */
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+        gap: 1rem;
+    }
+
+    .card-id {
+        background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+        color: #374151;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        flex-shrink: 0;
+    }
+
+    .status-badge {
+        padding: 0.4rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        flex-shrink: 0;
+    }
+
+    .status-ocupado {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+    }
+
+    .status-disponible {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        color: white;
+    }
+
+    /* Card Content */
+    .card-content {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        flex-grow: 1;
+    }
+
+    .card-field {
+        margin-bottom: 0;
+    }
+
+    .field-label {
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: #6b7280;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .field-value {
+        font-size: 0.95rem;
+        color: #1f2937;
+        line-height: 1.5;
+    }
+
+    .apartamento-identifier {
+        font-weight: 700;
+        font-size: 1.3rem;
+        color: #1f2937;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+
+    /* Propietario styling */
+    .propietario-info {
+        padding: 0.75rem;
+        background: #f8fafc;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+    }
+
+    .propietario-name {
+        font-weight: 600;
+        color: #059669;
+        font-size: 0.95rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .propietario-documento {
+        color: #6b7280;
+        font-family: 'Courier New', monospace;
+        background: #e2e8f0;
+        padding: 0.2rem 0.4rem;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        display: inline-block;
+    }
+
+    .sin-propietario {
+        color: #d97706;
+        font-style: italic;
+        background: #fef3c7;
+        padding: 0.75rem;
+        border-radius: 8px;
+        border: 1px solid #f59e0b;
+        text-align: center;
+        font-weight: 500;
+    }
+
+    /* Coeficiente styling */
+    .coeficiente-value {
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 12px;
+        font-weight: 700;
+        text-align: center;
+        font-size: 1rem;
+    }
+
+    /* Card Footer */
+    .card-footer {
+        margin-top: auto;
+        padding-top: 1.5rem;
+        border-top: 1px solid #f3f4f6;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    /* Action buttons */
+    .action-buttons {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .action-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 1rem;
+        color: white;
+        position: relative;
+        overflow: hidden;
+        text-decoration: none;
+    }
+
+    .action-btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+        transition: left 0.5s;
+    }
+
+    .action-btn:hover::before {
+        left: 100%;
+    }
+
+    .action-btn.edit {
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+
+    .action-btn.edit:hover {
+        background: linear-gradient(135deg, #1d4ed8, #1e40af);
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+    }
+
+    .action-btn.financiero {
+        background: linear-gradient(135deg, #10b981, #059669);
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+
+    .action-btn.financiero:hover {
+        background: linear-gradient(135deg, #059669, #047857);
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+    }
+
+    .action-btn.delete {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    }
+
+    .action-btn.delete:hover {
+        background: linear-gradient(135deg, #dc2626, #b91c1c);
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4);
+    }
+
+    /* Responsive adjustments for cards */
+    @media (max-width: 640px) {
+        .apartamentos-grid {
+            gap: 1rem;
+            padding: 1rem;
+        }
+        
+        .apartamento-card {
+            padding: 1.25rem;
+            min-height: 300px;
+        }
+        
+        .card-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+        
+        .card-footer {
+            padding-top: 1rem;
+        }
+        
+        .action-buttons {
+            gap: 1rem;
+        }
+        
+        .action-btn {
+            width: 36px;
+            height: 36px;
+            font-size: 0.9rem;
+        }
+    }
+
+    /* Empty state styling */
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: #6b7280;
+    }
+
+    @media (min-width: 768px) {
+        .empty-state {
+            padding: 4rem 2rem;
+        }
+    }
+
+    .empty-state-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    @media (min-width: 768px) {
+        .empty-state-icon {
+            font-size: 4rem;
+        }
+    }
+
+    .empty-state h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: #374151;
+    }
+
+    @media (min-width: 768px) {
+        .empty-state h3 {
+            font-size: 1.5rem;
+        }
+    }
+
+    .empty-state p {
+        font-size: 1rem;
+        margin-bottom: 2rem;
+        max-width: 400px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    /* Modal styling */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(4px);
+        z-index: 1000;
+        animation: fadeIn 0.3s ease;
+        padding: 1rem;
+    }
+
+    .modal-overlay.show {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 20px;
+        width: 100%;
+        max-width: 500px;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        animation: slideUp 0.3s ease;
+    }
+
+    .modal-header {
+        padding: 1.5rem 1.5rem 1rem 1.5rem;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: sticky;
+        top: 0;
+        background: white;
+        border-radius: 20px 20px 0 0;
+    }
+
+    @media (min-width: 768px) {
+        .modal-header {
+            padding: 2rem 2rem 1rem 2rem;
+        }
+    }
+
+    .modal-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    @media (min-width: 768px) {
+        .modal-title {
+            font-size: 1.5rem;
+        }
+    }
+
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: #6b7280;
+        padding: 0;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: all 0.2s ease;
+        flex-shrink: 0;
+    }
+
+    .modal-close:hover {
+        background: #f3f4f6;
+        color: #374151;
+    }
+
+    .modal-body {
+        padding: 1rem 1.5rem;
+    }
+
+    @media (min-width: 768px) {
+        .modal-body {
+            padding: 1.5rem 2rem;
+        }
+    }
+
+    .modal-footer {
+        padding: 1rem 1.5rem 1.5rem 1.5rem;
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+    }
+
+    @media (min-width: 768px) {
+        .modal-footer {
+            padding: 0 2rem 2rem 2rem;
+            flex-wrap: nowrap;
+        }
+    }
+
+    /* Form styling */
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: #374151;
+        font-size: 0.9rem;
+    }
+
+    .form-input, .form-select {
+        width: 100%;
+        padding: 0.875rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 10px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        background: #f9fafb;
+        box-sizing: border-box;
+    }
+
+    .form-input:focus, .form-select:focus {
+        outline: none;
+        border-color: #3b82f6;
+        background: white;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .form-input:required {
+        border-left: 4px solid #f59e0b;
+    }
+
+    .input-group {
+        display: flex;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .input-group .form-input {
+        border-radius: 0;
+        border-right: none;
+    }
+
+    .input-group-text {
+        background: #e5e7eb;
+        border: 2px solid #e5e7eb;
+        border-left: none;
+        padding: 0.875rem;
+        color: #6b7280;
+        font-weight: 600;
+    }
+
+    /* Button styling */
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 10px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        min-width: 120px;
+        flex: 1;
+    }
+
+    @media (min-width: 768px) {
+        .btn {
+            flex: none;
+            min-width: auto;
+        }
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        color: white;
+    }
+
+    .btn-secondary {
+        background: #6b7280;
+        color: white;
+    }
+
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes slideUp {
+        from { transform: translateY(30px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="apartamentos-container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1 class="page-title">
+            🏠 Gestión de Apartamentos
+        </h1>
+        <button class="add-btn" data-modal="modalNuevoApartamento">
+            ➕ Nuevo Apartamento
+        </button>
+    </div>
+
+    <!-- Messages Section -->
+    {% if request.query_params.get('success') %}
+    <div class="alert alert-success">
+        <div class="alert-icon">✅</div>
+        <div class="alert-message">
+            {% if request.query_params.get('success') == 'created' %}
+                Apartamento creado exitosamente
+            {% elif request.query_params.get('success') == 'updated' %}
+                Apartamento actualizado exitosamente
+            {% elif request.query_params.get('success') == 'deleted' %}
+                Apartamento eliminado exitosamente
+            {% else %}
+                Operación completada exitosamente
+            {% endif %}
+        </div>
+        <button class="alert-close" data-close-alert>&times;</button>
+    </div>
+    {% endif %}
+
+    {% if request.query_params.get('error') %}
+    <div class="alert alert-error">
+        <div class="alert-icon">❌</div>
+        <div class="alert-message">
+            {% if request.query_params.get('error') == 'identificador_exists' %}
+                Ya existe un apartamento con ese identificador
+            {% elif request.query_params.get('error') == 'propietario_not_found' %}
+                El propietario seleccionado no existe
+            {% elif request.query_params.get('error') == 'has_records' %}
+                No se puede eliminar el apartamento porque tiene registros financieros asociados
+            {% else %}
+                Ocurrió un error durante la operación
+            {% endif %}
+        </div>
+        <button class="alert-close" data-close-alert>&times;</button>
+    </div>
+    {% endif %}
+
+    <!-- Statistics Section -->
+    <div class="stats-section">
+        <div class="stat-card stat-primary">
+            <div class="stat-number">{{ apartamentos|length }}</div>
+            <div class="stat-label">Total Apartamentos</div>
+        </div>
+        <div class="stat-card stat-success">
+            <div class="stat-number">{{ apartamentos|selectattr("propietario")|list|length }}</div>
+            <div class="stat-label">Con Propietario</div>
+        </div>
+        <div class="stat-card stat-warning">
+            <div class="stat-number">{{ apartamentos|rejectattr("propietario")|list|length }}</div>
+            <div class="stat-label">Sin Propietario</div>
+        </div>
+        <div class="stat-card stat-info">
+            <div class="stat-number">{{ "%.4f"|format(apartamentos|sum(attribute="coeficiente_copropiedad")) }}%</div>
+            <div class="stat-label">Total Coeficientes</div>
+        </div>
+    </div>
+
+    <!-- Cards Container -->
+    <div class="cards-container use-cards">
+        {% if apartamentos %}
+        <div class="apartamentos-grid">
+            {% for apartamento in apartamentos %}
+            <div class="apartamento-card">
+                <!-- Card Header -->
+                <div class="card-header">
+                    <span class="status-badge {{ 'status-ocupado' if apartamento.propietario else 'status-disponible' }}">
+                        {{ '🏠 Ocupado' if apartamento.propietario else '🔓 Disponible' }}
+                    </span>
+                </div>
+                
+                <!-- Apartamento Identifier -->
+                <div class="apartamento-identifier">{{ apartamento.identificador }}</div>
+                
+                <!-- Card Content -->
+                <div class="card-content">
+                    <!-- Propietario -->
+                    <div class="card-field">
+                        <span class="field-label">Propietario</span>
+                        <div class="field-value">
+                            {% if apartamento.propietario %}
+                                <div class="propietario-info">
+                                    <div class="propietario-name">{{ apartamento.propietario.nombre_completo }}</div>
+                                    <div class="propietario-documento">{{ apartamento.propietario.documento_identidad }}</div>
+                                </div>
+                            {% else %}
+                                <div class="sin-propietario">Sin propietario asignado</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Coeficiente -->
+                    <!--div class="card-field">
+                        <span class="field-label">Coeficiente de Copropiedad</span>
+                        <div class="field-value">
+                            <div class="coeficiente-value">{{ apartamento.coeficiente_copropiedad }}%</div>
+                        </div>
+                    </div-->
+                </div>
+                
+                <!-- Card Footer con acciones -->
+                <div class="card-footer">
+                    <div class="action-buttons">
+                        <!--button class="action-btn edit" 
+                                data-id="{{ apartamento.id }}"
+                                data-identificador="{{ apartamento.identificador }}"
+                                data-coeficiente="{{ apartamento.coeficiente_copropiedad }}"
+                                data-propietario="{{ apartamento.propietario_id or '' }}"
+                                title="Editar apartamento">
+                            ✏️
+                        </button-->
+                         Situación de pago
+                        <a href="/admin/registros-financieros/{{ apartamento.id }}" 
+                           class="action-btn financiero"
+                           title="Estado financiero">
+                            💰
+                        </a>
+                        <!--button class="action-btn delete" 
+                                data-id="{{ apartamento.id }}"
+                                data-identificador="{{ apartamento.identificador }}"
+                                title="Eliminar apartamento">
+                            🗑️
+                        </button-->
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">🏠</div>
+            <h3>No hay apartamentos registrados</h3>
+            <p>Comienza agregando el primer apartamento del edificio</p>
+            <button class="btn btn-primary" data-modal="modalNuevoApartamento">
+                ➕ Agregar Primer Apartamento
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal Nuevo Apartamento -->
+<div class="modal-overlay" id="modalNuevoApartamento">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title">
+                🏠 Nuevo Apartamento
+            </h2>
+            <button class="modal-close" data-close="modalNuevoApartamento">&times;</button>
+        </div>
+        <form method="post" action="/admin/apartamentos/crear">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="identificador" class="form-label">Identificador *</label>
+                    <input type="text" class="form-input" name="identificador" 
+                           placeholder="Ej: Apto 101, Bloque A-202" required>
+                </div>
+                <div class="form-group">
+                    <label for="coeficiente_copropiedad" class="form-label">Coeficiente de Copropiedad *</label>
+                    <div class="input-group">
+                        <input type="number" class="form-input" name="coeficiente_copropiedad" 
+                               step="0.000001" required>
+                        <span class="input-group-text">%</span>
+                    </div>
+                    <small style="color: #6b7280; font-size: 0.8rem;">Porcentaje de participación en las zonas comunes</small>
+                </div>
+                <div class="form-group">
+                    <label for="propietario_id" class="form-label">Propietario (Opcional)</label>
+                    <select class="form-select" name="propietario_id">
+                        <option value="">Seleccionar propietario...</option>
+                        {% for propietario in propietarios %}
+                        <option value="{{ propietario.id }}">{{ propietario.nombre_completo }} ({{ propietario.documento_identidad }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-close="modalNuevoApartamento">
+                    Cancelar
+                </button>
+                <button type="submit" class="btn btn-primary">
+                    💾 Guardar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Editar Apartamento -->
+<div class="modal-overlay" id="modalEditarApartamento">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title">
+                ✏️ Editar Apartamento
+            </h2>
+            <button class="modal-close" data-close="modalEditarApartamento">&times;</button>
+        </div>
+        <form method="post" id="formEditarApartamento">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="edit_identificador" class="form-label">Identificador *</label>
+                    <input type="text" class="form-input" name="identificador" id="edit_identificador" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit_coeficiente_copropiedad" class="form-label">Coeficiente de Copropiedad *</label>
+                    <div class="input-group">
+                        <input type="number" class="form-input" name="coeficiente_copropiedad" 
+                               id="edit_coeficiente_copropiedad" step="0.000001" required>
+                        <span class="input-group-text">%</span>
+                    </div>
+                    <small style="color: #6b7280; font-size: 0.8rem;">Porcentaje de participación en las zonas comunes</small>
+                </div>
+                <div class="form-group">
+                    <label for="edit_propietario_id" class="form-label">Propietario (Opcional)</label>
+                    <select class="form-select" name="propietario_id" id="edit_propietario_id">
+                        <option value="">Seleccionar propietario...</option>
+                        {% for propietario in propietarios %}
+                        <option value="{{ propietario.id }}">{{ propietario.nombre_completo }} ({{ propietario.documento_identidad }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-close="modalEditarApartamento">
+                    Cancelar
+                </button>
+                <button type="submit" class="btn btn-primary">
+                    💾 Actualizar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Modal functions
+function showModal(modalId) {
+    document.getElementById(modalId).classList.add('show');
+    document.body.style.overflow = 'hidden';
+}
+
+function hideModal(modalId) {
+    document.getElementById(modalId).classList.remove('show');
+    document.body.style.overflow = 'auto';
+}
+
+// Initialize event listeners when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Modal open buttons
+    document.querySelectorAll('[data-modal]').forEach(button => {
+        button.addEventListener('click', function() {
+            const modalId = this.getAttribute('data-modal');
+            showModal(modalId);
+        });
+    });
+
+    // Modal close buttons
+    document.querySelectorAll('[data-close]').forEach(button => {
+        button.addEventListener('click', function() {
+            const modalId = this.getAttribute('data-close');
+            hideModal(modalId);
+        });
+    });
+
+    // Alert close buttons
+    document.querySelectorAll('[data-close-alert]').forEach(button => {
+        button.addEventListener('click', function() {
+            this.parentElement.style.display = 'none';
+        });
+    });
+
+    // Edit buttons
+    document.querySelectorAll('.action-btn.edit').forEach(button => {
+        button.addEventListener('click', function() {
+            const id = this.getAttribute('data-id');
+            const identificador = this.getAttribute('data-identificador');
+            const coeficiente = this.getAttribute('data-coeficiente');
+            const propietario = this.getAttribute('data-propietario');
+            
+            editarApartamento(id, identificador, coeficiente, propietario);
+        });
+    });
+
+    // Delete buttons
+    document.querySelectorAll('.action-btn.delete').forEach(button => {
+        button.addEventListener('click', function() {
+            const id = this.getAttribute('data-id');
+            const identificador = this.getAttribute('data-identificador');
+            
+            eliminarApartamento(id, identificador);
+        });
+    });
+});
+
+// Close modal when clicking outside
+document.addEventListener('click', function(event) {
+    if (event.target.classList.contains('modal-overlay')) {
+        hideModal(event.target.id);
+    }
+});
+
+// Close modal with Escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        const modals = document.querySelectorAll('.modal-overlay.show');
+        modals.forEach(modal => {
+            hideModal(modal.id);
+        });
+    }
+});
+
+function editarApartamento(id, identificador, coeficiente, propietario_id) {
+    document.getElementById('edit_identificador').value = identificador;
+    document.getElementById('edit_coeficiente_copropiedad').value = coeficiente;
+    
+    // Establecer el propietario seleccionado
+    const selectPropietario = document.getElementById('edit_propietario_id');
+    if (propietario_id && propietario_id !== 'null' && propietario_id !== '') {
+        for (let i = 0; i < selectPropietario.options.length; i++) {
+            if (selectPropietario.options[i].value == propietario_id) {
+                selectPropietario.options[i].selected = true;
+                break;
+            }
+        }
+    } else {
+        selectPropietario.options[0].selected = true;
+    }
+    
+    document.getElementById('formEditarApartamento').action = `/admin/apartamentos/${id}/editar`;
+    
+    showModal('modalEditarApartamento');
+}
+
+function eliminarApartamento(id, identificador) {
+    if (confirm(`¿Está seguro de eliminar el apartamento "${identificador}"?\n\nEsta acción no se puede deshacer.`)) {
+        const form = document.createElement('form');
+        form.method = 'post';
+        form.action = `/admin/apartamentos/${id}/eliminar`;
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+</script>
+{% endblock %}

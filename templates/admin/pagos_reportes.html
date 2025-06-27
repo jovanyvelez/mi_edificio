@@ -1,0 +1,621 @@
+{% extends "base.html" %}
+
+{% block title %}Reportes de Pagos{% endblock %}
+
+{% block header %}📊 Reportes de Pagos{% endblock %}
+
+{% block head %}
+<style>
+    .reportes-container {
+        display: grid;
+        gap: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .reportes-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2.5rem;
+        border-radius: 20px;
+        box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 1rem;
+    }
+    
+    .reportes-header h1 {
+        margin: 0 0 0.5rem 0;
+        font-size: 2.5rem;
+        font-weight: 300;
+        text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+    
+    .period-selector {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: 1.5rem;
+    }
+    
+    .selector-group {
+        background: rgba(255,255,255,0.2);
+        padding: 1rem;
+        border-radius: 15px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.3);
+    }
+    
+    .selector-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: white;
+    }
+    
+    .selector-input {
+        padding: 0.5rem;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        background: rgba(255,255,255,0.9);
+        color: #2d3748;
+        font-weight: 500;
+    }
+    
+    .update-btn {
+        background: rgba(255,255,255,0.3);
+        color: white;
+        border: 1px solid rgba(255,255,255,0.5);
+        padding: 0.8rem 1.5rem;
+        border-radius: 25px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .update-btn:hover {
+        background: rgba(255,255,255,0.4);
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+    
+    .back-btn {
+        background: rgba(255,255,255,0.2);
+        color: white;
+        border: 1px solid rgba(255,255,255,0.3);
+        padding: 0.8rem 1.5rem;
+        border-radius: 25px;
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+    
+    .back-btn:hover {
+        background: rgba(255,255,255,0.3);
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+        background: rgba(255,255,255,0.95);
+        backdrop-filter: blur(20px);
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        border: 1px solid rgba(255,255,255,0.2);
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #667eea, #764ba2);
+    }
+    
+    .stat-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin: 0;
+        color: #2d3748;
+    }
+    
+    .stat-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+        font-weight: 500;
+        margin-top: 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .stat-icon {
+        font-size: 3rem;
+        opacity: 0.2;
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+    }
+    
+    .reportes-table-card {
+        background: rgba(255,255,255,0.95);
+        backdrop-filter: blur(20px);
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        border: 1px solid rgba(255,255,255,0.2);
+    }
+    
+    .table-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #e2e8f0;
+    }
+    
+    .table-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #2d3748;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .export-btn {
+        background: linear-gradient(135deg, #2ecc71, #27ae60);
+        color: white;
+        border: none;
+        padding: 0.8rem 1.5rem;
+        border-radius: 15px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .export-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(46, 204, 113, 0.4);
+    }
+    
+    .reportes-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+        background: white;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    }
+    
+    .reportes-table th {
+        background: linear-gradient(135deg, #4a5568, #2d3748);
+        color: white;
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .reportes-table td {
+        padding: 1rem;
+        border-bottom: 1px solid #e2e8f0;
+        vertical-align: middle;
+    }
+    
+    .reportes-table tr:nth-child(even) {
+        background: #f8fafc;
+    }
+    
+    .reportes-table tr:hover {
+        background: #e6fffa;
+        transition: all 0.2s ease;
+    }
+    
+    .apartment-cell {
+        font-weight: 600;
+        color: #2d3748;
+        font-size: 1.1rem;
+    }
+    
+    .amount-cell {
+        text-align: right;
+        font-weight: 600;
+        font-size: 1rem;
+    }
+    
+    .positive-amount {
+        color: #2ecc71;
+    }
+    
+    .negative-amount {
+        color: #e74c3c;
+    }
+    
+    .zero-amount {
+        color: #6c757d;
+    }
+    
+    .status-badge {
+        padding: 0.3rem 0.8rem;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        text-transform: uppercase;
+    }
+    
+    .status-paid {
+        background: linear-gradient(135deg, #2ecc71, #27ae60);
+        color: white;
+    }
+    
+    .status-pending {
+        background: linear-gradient(135deg, #f39c12, #e67e22);
+        color: white;
+    }
+    
+    .status-overdue {
+        background: linear-gradient(135deg, #e74c3c, #c0392b);
+        color: white;
+    }
+    
+    .table-container {
+        overflow-x: auto;
+        border-radius: 15px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    .summary-row {
+        background: linear-gradient(135deg, #667eea, #764ba2) !important;
+        color: white;
+        font-weight: 600;
+    }
+    
+    .summary-row td {
+        border-bottom: none;
+        font-size: 1.1rem;
+    }
+    
+    .no-data {
+        text-align: center;
+        padding: 3rem;
+        color: #6c757d;
+    }
+    
+    .no-data-icon {
+        font-size: 4rem;
+        color: #dee2e6;
+        margin-bottom: 1rem;
+    }
+    
+    @media (max-width: 768px) {
+        .period-selector {
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .table-header {
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .reportes-table-card {
+            padding: 1rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="reportes-container">
+    <div class="reportes-header">
+        <h1>📊 Reportes de Pagos</h1>
+        <p style="opacity: 0.9; font-size: 1.1rem; margin: 0.5rem 0;">
+            Análisis detallado de recaudación - {{ meses[mes_actual-1].nombre }} {{ año_actual }}
+        </p>
+        
+        <form method="get" style="display: contents;">
+            <div class="period-selector">
+                <div class="selector-group">
+                    <label class="selector-label">Mes</label>
+                    <select name="mes" class="selector-input">
+                        {% for mes in meses %}
+                        <option value="{{ mes.numero }}" {% if mes.numero == mes_actual %}selected{% endif %}>
+                            {{ mes.nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="selector-group">
+                    <label class="selector-label">Año</label>
+                    <select name="año" class="selector-input">
+                        {% for año in años %}
+                        <option value="{{ año }}" {% if año == año_actual %}selected{% endif %}>
+                            {{ año }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="selector-group">
+                    <button type="submit" class="update-btn">
+                        🔄 Actualizar Reporte
+                    </button>
+                </div>
+            </div>
+        </form>
+        
+        <a href="/admin/pagos" class="back-btn">
+            ← Volver a Pagos
+        </a>
+    </div>
+
+    <!-- Estadísticas Generales -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">💰</div>
+            <h3 class="stat-value positive-amount">${{ "{:,.2f}".format(total_pagado_general) }}</h3>
+            <p class="stat-label">Total Pagado</p>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">📋</div>
+            <h3 class="stat-value negative-amount">${{ "{:,.2f}".format(total_cargado_general) }}</h3>
+            <p class="stat-label">Total Cargado</p>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">⚖️</div>
+            <h3 class="stat-value {{ 'positive-amount' if (total_cargado_general - total_pagado_general) <= 0 else 'negative-amount' }}">
+                ${{ "{:,.2f}".format(total_cargado_general - total_pagado_general) }}
+            </h3>
+            <p class="stat-label">Saldo Pendiente</p>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">📈</div>
+            <h3 class="stat-value text-primary">
+                {{ "{:.1f}%".format((total_pagado_general / total_cargado_general * 100) if total_cargado_general > 0 else 0) }}
+            </h3>
+            <p class="stat-label">% Recaudación</p>
+        </div>
+    </div>
+
+    <!-- Tabla de Reportes por Apartamento -->
+    <div class="reportes-table-card">
+        <div class="table-header">
+            <h2 class="table-title">
+                🏢 Reporte por Apartamento
+            </h2>
+            <button class="export-btn" onclick="exportarReporte()">
+                📥 Exportar Excel
+            </button>
+        </div>
+        
+        {% if reporte_apartamentos %}
+        <div class="table-container">
+            <table class="reportes-table">
+                <thead>
+                    <tr>
+                        <th>Apartamento</th>
+                        <th>Propietario</th>
+                        <th style="text-align: right;">Total Cargado</th>
+                        <th style="text-align: right;">Total Pagado</th>
+                        <th style="text-align: right;">Saldo</th>
+                        <th style="text-align: center;">Estado</th>
+                        <th style="text-align: center;">Pagos</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in reporte_apartamentos %}
+                    <tr>
+                        <td class="apartment-cell">{{ item.apartamento.identificador }}</td>
+                        <td>
+                            {% if item.apartamento.propietario %}
+                                {{ item.apartamento.propietario.nombre_completo }}
+                            {% else %}
+                                <span style="color: #a0a0a0;">Sin propietario</span>
+                            {% endif %}
+                        </td>
+                        <td class="amount-cell negative-amount">
+                            ${{ "{:,.2f}".format(item.total_cargado) }}
+                        </td>
+                        <td class="amount-cell positive-amount">
+                            ${{ "{:,.2f}".format(item.total_pagado) }}
+                        </td>
+                        <td class="amount-cell {{ 'positive-amount' if item.saldo <= 0 else 'negative-amount' if item.saldo > 0 else 'zero-amount' }}">
+                            ${{ "{:,.2f}".format(item.saldo) }}
+                        </td>
+                        <td style="text-align: center;">
+                            {% if item.saldo <= 0 %}
+                                <span class="status-badge status-paid">Al Día</span>
+                            {% elif item.saldo <= 100 %}
+                                <span class="status-badge status-pending">Pendiente</span>
+                            {% else %}
+                                <span class="status-badge status-overdue">Mora</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: center;">
+                            <span style="background: #667eea; color: white; padding: 0.3rem 0.6rem; border-radius: 15px; font-size: 0.8rem; font-weight: 500;">
+                                {{ item.pagos|length }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="summary-row">
+                        <td colspan="2"><strong>TOTALES</strong></td>
+                        <td style="text-align: right;"><strong>${{ "{:,.2f}".format(total_cargado_general) }}</strong></td>
+                        <td style="text-align: right;"><strong>${{ "{:,.2f}".format(total_pagado_general) }}</strong></td>
+                        <td style="text-align: right;"><strong>${{ "{:,.2f}".format(total_cargado_general - total_pagado_general) }}</strong></td>
+                        <td colspan="2"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        {% else %}
+        <div class="no-data">
+            <div class="no-data-icon">📊</div>
+            <h4>No hay datos para el período seleccionado</h4>
+            <p>Seleccione un mes y año diferentes para ver los reportes.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function exportarReporte() {
+    // En una implementación real, esto generaría y descargaría un archivo Excel
+    alert('Funcionalidad de exportación en desarrollo.\n\nEn la versión final, esto generará un archivo Excel con el reporte completo.');
+}
+
+// Mejorar la experiencia visual
+document.addEventListener('DOMContentLoaded', function() {
+    // Animar las estadísticas al cargar
+    const statValues = document.querySelectorAll('.stat-value');
+    statValues.forEach((stat, index) => {
+        stat.style.opacity = '0';
+        stat.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+            stat.style.transition = 'all 0.6s ease';
+            stat.style.opacity = '1';
+            stat.style.transform = 'translateY(0)';
+        }, index * 100);
+    });
+    
+    // Resaltar filas al pasar el mouse
+    const tableRows = document.querySelectorAll('.reportes-table tbody tr');
+    tableRows.forEach(row => {
+        row.addEventListener('mouseenter', function() {
+            this.style.transform = 'scale(1.02)';
+            this.style.zIndex = '10';
+            this.style.boxShadow = '0 5px 15px rgba(0,0,0,0.1)';
+        });
+        
+        row.addEventListener('mouseleave', function() {
+            this.style.transform = 'scale(1)';
+            this.style.zIndex = '1';
+            this.style.boxShadow = 'none';
+        });
+    });
+});
+
+// Función para cambiar período rápidamente
+function cambiarPeriodo(mes, año) {
+    const form = document.querySelector('form');
+    const mesSelect = form.querySelector('select[name="mes"]');
+    const añoSelect = form.querySelector('select[name="año"]');
+    
+    mesSelect.value = mes;
+    añoSelect.value = año;
+    form.submit();
+}
+
+// Atajos de teclado para navegación rápida
+document.addEventListener('keydown', function(e) {
+    if (e.ctrlKey || e.metaKey) {
+        switch(e.key) {
+            case 'ArrowLeft':
+                e.preventDefault();
+                // Mes anterior
+                const mesActual = {{ mes_actual }};
+                const añoActual = {{ año_actual }};
+                if (mesActual > 1) {
+                    cambiarPeriodo(mesActual - 1, añoActual);
+                } else {
+                    cambiarPeriodo(12, añoActual - 1);
+                }
+                break;
+            case 'ArrowRight':
+                e.preventDefault();
+                // Mes siguiente
+                const mesActual2 = {{ mes_actual }};
+                const añoActual2 = {{ año_actual }};
+                if (mesActual2 < 12) {
+                    cambiarPeriodo(mesActual2 + 1, añoActual2);
+                } else {
+                    cambiarPeriodo(1, añoActual2 + 1);
+                }
+                break;
+            case 'e':
+                e.preventDefault();
+                exportarReporte();
+                break;
+        }
+    }
+});
+
+// Mostrar ayuda de atajos
+document.addEventListener('DOMContentLoaded', function() {
+    const helpText = document.createElement('div');
+    helpText.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: rgba(0,0,0,0.8);
+        color: white;
+        padding: 10px;
+        border-radius: 10px;
+        font-size: 0.8rem;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        z-index: 1000;
+    `;
+    helpText.innerHTML = `
+        <strong>Atajos:</strong><br>
+        Ctrl+← : Mes anterior<br>
+        Ctrl+→ : Mes siguiente<br>
+        Ctrl+E : Exportar
+    `;
+    document.body.appendChild(helpText);
+    
+    // Mostrar ayuda al pasar mouse por la esquina
+    document.addEventListener('mousemove', function(e) {
+        if (e.clientX > window.innerWidth - 100 && e.clientY > window.innerHeight - 100) {
+            helpText.style.opacity = '1';
+        } else {
+            helpText.style.opacity = '0';
+        }
+    });
+});
+</script>
+{% endblock %}

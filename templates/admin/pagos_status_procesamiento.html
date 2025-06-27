@@ -1,0 +1,643 @@
+{% extends "base.html" %}
+
+{% block title %}Historial de Procesamiento Automático{% endblock %}
+
+{% block header %}📊 Historial de Procesamiento{% endblock %}
+
+{% block head %}
+<style>
+    .status-container {
+        display: grid;
+        gap: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .status-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2.5rem;
+        border-radius: 20px;
+        box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 1rem;
+    }
+    
+    .status-header h1 {
+        margin: 0 0 0.5rem 0;
+        font-size: 2.5rem;
+        font-weight: 300;
+        text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+    
+    .status-subtitle {
+        opacity: 0.95;
+        font-size: 1.2rem;
+        margin: 0;
+        font-weight: 300;
+    }
+    
+    .nav-buttons {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: 1.5rem;
+    }
+    
+    .nav-btn {
+        background: rgba(255,255,255,0.2);
+        border: 2px solid rgba(255,255,255,0.3);
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 15px;
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .nav-btn:hover {
+        background: rgba(255,255,255,0.3);
+        border-color: rgba(255,255,255,0.5);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    }
+    
+    .nav-btn.primary {
+        background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+        color: #333;
+        border-color: transparent;
+    }
+    
+    .nav-btn.primary:hover {
+        color: #333;
+        background: linear-gradient(135deg, #fed6e3 0%, #a8edea 100%);
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        text-align: center;
+        box-shadow: 0 5px 25px rgba(0,0,0,0.1);
+        border: 1px solid rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: var(--accent-color);
+    }
+    
+    .stat-card.primary::before { --accent-color: linear-gradient(90deg, #667eea, #764ba2); }
+    .stat-card.success::before { --accent-color: linear-gradient(90deg, #56ab2f, #a8e6cf); }
+    .stat-card.warning::before { --accent-color: linear-gradient(90deg, #f093fb, #f5576c); }
+    .stat-card.info::before { --accent-color: linear-gradient(90deg, #4facfe, #00f2fe); }
+    
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+    }
+    
+    .stat-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    .stat-label {
+        color: #666;
+        font-size: 1rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .card {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        border: none;
+        overflow: hidden;
+        margin-bottom: 2rem;
+    }
+    
+    .card-header {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        padding: 1.5rem 2rem;
+        border: none;
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+    
+    .card-body {
+        padding: 2rem;
+    }
+    
+    .last-processing {
+        background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .processing-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .processing-item {
+        text-align: center;
+        padding: 1rem;
+        background: rgba(255,255,255,0.8);
+        border-radius: 10px;
+        backdrop-filter: blur(10px);
+    }
+    
+    .processing-label {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 0.5rem;
+    }
+    
+    .processing-value {
+        font-size: 1.2rem;
+        color: #667eea;
+        font-weight: 700;
+    }
+    
+    .table-container {
+        overflow-x: auto;
+        border-radius: 15px;
+        box-shadow: 0 0 0 1px rgba(0,0,0,0.1);
+    }
+    
+    .custom-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0;
+        background: white;
+    }
+    
+    .custom-table th {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+        border: none;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    
+    .custom-table td {
+        padding: 1rem;
+        border-bottom: 1px solid #f0f0f0;
+        vertical-align: middle;
+    }
+    
+    .custom-table tbody tr {
+        transition: background-color 0.2s ease;
+    }
+    
+    .custom-table tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .custom-table tfoot tr {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        font-weight: 600;
+    }
+    
+    .custom-table tfoot td {
+        border-top: 2px solid #667eea;
+        border-bottom: none;
+    }
+    
+    .badge {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        border-radius: 25px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-align: center;
+        color: white;
+    }
+    
+    .badge.primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .badge.success { background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%); }
+    .badge.warning { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+    .badge.info { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+    
+    .action-btn {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 10px;
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .action-btn:hover {
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(79, 172, 254, 0.4);
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 3rem 2rem;
+        color: #666;
+    }
+    
+    .empty-state .icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+    
+    .empty-state h3 {
+        margin-bottom: 1rem;
+        color: #333;
+    }
+    
+    .empty-state p {
+        margin-bottom: 2rem;
+        font-size: 1.1rem;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
+        border: none;
+        padding: 0.75rem 2rem;
+        border-radius: 15px;
+        color: white;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(86, 171, 47, 0.4);
+    }
+    
+    .period-badge {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 15px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        margin-left: 0.5rem;
+    }
+    
+    .text-center { text-align: center; }
+    .text-end { text-align: right; }
+    .text-muted { color: #666; }
+    .fw-bold { font-weight: 700; }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .stats-grid {
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+        
+        .nav-buttons {
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .processing-grid {
+            grid-template-columns: 1fr;
+            gap: 0.5rem;
+        }
+        
+        .status-header {
+            padding: 2rem 1rem;
+        }
+        
+        .status-header h1 {
+            font-size: 2rem;
+        }
+        
+        .custom-table th,
+        .custom-table td {
+            padding: 0.75rem 0.5rem;
+            font-size: 0.9rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="status-container">
+    <!-- Header -->
+    <div class="status-header">
+        <h1>📊 Historial de Procesamiento Automático V3</h1>
+        <p class="status-subtitle">Monitoreo y estadísticas de procesamientos automáticos</p>
+        
+        <div class="nav-buttons">
+            <a href="/admin/pagos" class="nav-btn">
+                ← Volver a Pagos
+            </a>
+            <a href="/admin/pagos/generar-automatico" class="nav-btn primary">
+                ✨ Procesar Nuevo Mes
+            </a>
+        </div>
+    </div>
+
+    <!-- Estadísticas Generales -->
+    <div class="stats-grid">
+        <div class="stat-card primary">
+            <div class="stat-value">{{ meses_procesados }}</div>
+            <div class="stat-label">Meses Procesados</div>
+        </div>
+        <div class="stat-card success">
+            <div class="stat-value">{{ total_cuotas }}</div>
+            <div class="stat-label">Cuotas Generadas</div>
+        </div>
+        <div class="stat-card warning">
+            <div class="stat-value">{{ total_intereses }}</div>
+            <div class="stat-label">Intereses Generados</div>
+        </div>
+        <div class="stat-card info">
+            <div class="stat-value">${{ "{:,.0f}".format(total_monto) }}</div>
+            <div class="stat-label">Total Procesado</div>
+        </div>
+    </div>
+
+    <!-- Último Procesamiento -->
+    {% if ultimo_procesamiento %}
+    <div class="card">
+        <div class="card-header">
+            🕒 Último Procesamiento
+        </div>
+        <div class="card-body">
+            <div class="last-processing">
+                <div class="processing-grid">
+                    <div class="processing-item">
+                        <div class="processing-label">Período</div>
+                        <div class="processing-value">{{ "{:02d}".format(ultimo_procesamiento.mes) }}/{{ ultimo_procesamiento.año }}</div>
+                    </div>
+                    <div class="processing-item">
+                        <div class="processing-label">Fecha</div>
+                        <div class="processing-value">{{ ultimo_procesamiento.fecha_procesamiento.strftime('%d/%m/%Y %H:%M:%S') }}</div>
+                    </div>
+                    <div class="processing-item">
+                        <div class="processing-label">Cuotas</div>
+                        <div class="processing-value">{{ ultimo_procesamiento.cuotas_generadas }}</div>
+                    </div>
+                    <div class="processing-item">
+                        <div class="processing-label">Intereses</div>
+                        <div class="processing-value">{{ ultimo_procesamiento.intereses_generados }}</div>
+                    </div>
+                    <div class="processing-item">
+                        <div class="processing-label">Monto Cuotas</div>
+                        <div class="processing-value">${{ "{:,.2f}".format(ultimo_procesamiento.monto_cuotas) }}</div>
+                    </div>
+                    <div class="processing-item">
+                        <div class="processing-label">Monto Intereses</div>
+                        <div class="processing-value">${{ "{:,.2f}".format(ultimo_procesamiento.monto_intereses) }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Historial Detallado -->
+    <div class="card">
+        <div class="card-header">
+            📋 Historial Detallado (Últimos 24 meses)
+        </div>
+        <div class="card-body">
+            {% if procesamientos %}
+            <div class="table-container">
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th>Período</th>
+                            <th>Fecha Procesamiento</th>
+                            <th class="text-center">Cuotas</th>
+                            <th class="text-center">Intereses</th>
+                            <th class="text-end">Monto Cuotas</th>
+                            <th class="text-end">Monto Intereses</th>
+                            <th class="text-end">Total</th>
+                            <th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for procesamiento in procesamientos %}
+                        <tr>
+                            <td>
+                                <span class="fw-bold">{{ "{:02d}".format(procesamiento.mes) }}/{{ procesamiento.año }}</span>
+                                {% if loop.index == 1 %}
+                                <span class="period-badge">Más Reciente</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ procesamiento.fecha_procesamiento.strftime('%d/%m/%Y') }}
+                                <br>
+                                <small class="text-muted">{{ procesamiento.fecha_procesamiento.strftime('%H:%M:%S') }}</small>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge primary">{{ procesamiento.cuotas_generadas }}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge warning">{{ procesamiento.intereses_generados }}</span>
+                            </td>
+                            <td class="text-end">
+                                ${{ "{:,.2f}".format(procesamiento.monto_cuotas) }}
+                            </td>
+                            <td class="text-end">
+                                ${{ "{:,.2f}".format(procesamiento.monto_intereses) }}
+                            </td>
+                            <td class="text-end fw-bold">
+                                ${{ "{:,.2f}".format(procesamiento.monto_cuotas + procesamiento.monto_intereses) }}
+                            </td>
+                            <td class="text-center">
+                                <a href="/admin/pagos/reportes?mes={{ procesamiento.mes }}&año={{ procesamiento.año }}" 
+                                   class="action-btn" title="Ver Reporte">
+                                    📊 Reporte
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="2" class="fw-bold">TOTALES</td>
+                            <td class="text-center fw-bold">{{ total_cuotas }}</td>
+                            <td class="text-center fw-bold">{{ total_intereses }}</td>
+                            <td class="text-end fw-bold">${{ "{:,.2f}".format(procesamientos|sum(attribute='monto_cuotas')) }}</td>
+                            <td class="text-end fw-bold">${{ "{:,.2f}".format(procesamientos|sum(attribute='monto_intereses')) }}</td>
+                            <td class="text-end fw-bold">${{ "{:,.2f}".format(total_monto) }}</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="icon">📊</div>
+                <h3>No hay procesamientos registrados</h3>
+                <p>Los procesamientos automáticos V3 aparecerán aquí una vez que ejecute la generación.</p>
+                <a href="/admin/pagos/generar-automatico" class="btn-primary">
+                    ✨ Realizar Primer Procesamiento
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Animación de entrada para las tarjetas de estadísticas
+    const statCards = document.querySelectorAll('.stat-card');
+    statCards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        setTimeout(() => {
+            card.style.transition = 'all 0.6s ease';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, index * 100);
+    });
+
+    // Efecto hover para las filas de la tabla
+    const tableRows = document.querySelectorAll('.custom-table tbody tr');
+    tableRows.forEach(row => {
+        row.addEventListener('mouseenter', function() {
+            this.style.transform = 'scale(1.01)';
+            this.style.zIndex = '5';
+            this.style.boxShadow = '0 5px 15px rgba(0,0,0,0.1)';
+        });
+        
+        row.addEventListener('mouseleave', function() {
+            this.style.transform = 'scale(1)';
+            this.style.zIndex = '1';
+            this.style.boxShadow = 'none';
+        });
+    });
+
+    // Actualización automática cada 30 segundos si hay procesamientos activos
+    let autoRefreshInterval;
+    
+    function startAutoRefresh() {
+        autoRefreshInterval = setInterval(() => {
+            // Solo refrescar si hay procesamientos en la tabla
+            if (document.querySelectorAll('.custom-table tbody tr').length > 0) {
+                const currentUrl = window.location.href;
+                fetch(currentUrl)
+                    .then(response => response.text())
+                    .then(html => {
+                        // Actualizar solo las estadísticas sin recargar toda la página
+                        const parser = new DOMParser();
+                        const newDoc = parser.parseFromString(html, 'text/html');
+                        
+                        // Actualizar valores de estadísticas
+                        const statValues = document.querySelectorAll('.stat-value');
+                        const newStatValues = newDoc.querySelectorAll('.stat-value');
+                        
+                        statValues.forEach((value, index) => {
+                            if (newStatValues[index] && value.textContent !== newStatValues[index].textContent) {
+                                value.style.animation = 'pulse 0.5s ease-in-out';
+                                value.textContent = newStatValues[index].textContent;
+                                setTimeout(() => {
+                                    value.style.animation = '';
+                                }, 500);
+                            }
+                        });
+                    })
+                    .catch(console.error);
+            }
+        }, 30000);
+    }
+
+    // Iniciar auto-refresh
+    startAutoRefresh();
+
+    // Limpiar interval cuando se abandona la página
+    window.addEventListener('beforeunload', () => {
+        if (autoRefreshInterval) {
+            clearInterval(autoRefreshInterval);
+        }
+    });
+
+    // Atajos de teclado
+    document.addEventListener('keydown', function(e) {
+        // Alt + N = Nuevo procesamiento
+        if (e.altKey && e.key === 'n') {
+            e.preventDefault();
+            window.location.href = '/admin/pagos/generar-automatico';
+        }
+        
+        // Alt + P = Volver a pagos
+        if (e.altKey && e.key === 'p') {
+            e.preventDefault();
+            window.location.href = '/admin/pagos';
+        }
+        
+        // Esc = Volver a pagos
+        if (e.key === 'Escape') {
+            window.location.href = '/admin/pagos';
+        }
+    });
+
+    console.log('🚀 Sistema de Historial de Procesamiento V3 cargado correctamente');
+    console.log('💡 Atajos disponibles:');
+    console.log('   • Alt + N: Nuevo procesamiento');
+    console.log('   • Alt + P: Volver a pagos');
+    console.log('   • Esc: Volver a pagos');
+});
+
+// Animación CSS para el pulse
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %}

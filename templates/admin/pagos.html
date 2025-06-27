@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Sistema de Pagos - Cuotas Ordinarias{% endblock %}
+
+{% block header %}💳 Sistema de Pagos{% endblock %}
+
+{% block content %}
+<div style="padding: 2rem;">
+    <h1>�� Sistema de Pagos - Cuotas Ordinarias</h1>
+    <p>Panel principal del sistema de pagos modernizado</p>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin: 2rem 0;">
+        <div style="background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 5px 25px rgba(0,0,0,0.1); text-align: center;">
+            <div style="font-size: 2rem; font-weight: 700; color: #667eea;">{{ total_apartamentos }}</div>
+            <div style="color: #666;">Total Apartamentos</div>
+        </div>
+        <div style="background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 5px 25px rgba(0,0,0,0.1); text-align: center;">
+            <div style="font-size: 2rem; font-weight: 700; color: #56ab2f;">{{ apartamentos_configurados }}</div>
+            <div style="color: #666;">Configurados</div>
+        </div>
+        <div style="background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 5px 25px rgba(0,0,0,0.1); text-align: center;">
+            <div style="font-size: 2rem; font-weight: 700; color: #f093fb;">{{ apartamentos_con_cargo }}</div>
+            <div style="color: #666;">Con Cargos</div>
+        </div>
+        <div style="background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 5px 25px rgba(0,0,0,0.1); text-align: center;">
+            <div style="font-size: 2rem; font-weight: 700; color: #4facfe;">{{ apartamentos_pagados }}</div>
+            <div style="color: #666;">Pagados</div>
+        </div>
+    </div>
+    
+    <div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin: 2rem 0;">
+        <a href="/admin/pagos/configuracion" style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); color: #333; padding: 0.75rem 1.5rem; border-radius: 15px; text-decoration: none; font-weight: 500;">
+            ⚙️ Configurar Cuotas
+        </a>
+        <a href="/admin/pagos/generar-automatico" style="background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%); color: white; padding: 0.75rem 1.5rem; border-radius: 15px; text-decoration: none; font-weight: 500;">
+            ✨ Generación Automática V3
+        </a>
+        <a href="/admin/pagos/generar-cargos" style="background: rgba(255,255,255,0.9); border: 2px solid #667eea; color: #667eea; padding: 0.75rem 1.5rem; border-radius: 15px; text-decoration: none; font-weight: 500;">
+            ➕ Generación Básica
+        </a>
+        <a href="/admin/pagos/procesar" style="background: rgba(255,255,255,0.9); border: 2px solid #667eea; color: #667eea; padding: 0.75rem 1.5rem; border-radius: 15px; text-decoration: none; font-weight: 500;">
+            💰 Procesar Pagos
+        </a>
+        <a href="/admin/pagos/reportes" style="background: rgba(255,255,255,0.9); border: 2px solid #667eea; color: #667eea; padding: 0.75rem 1.5rem; border-radius: 15px; text-decoration: none; font-weight: 500;">
+            📊 Reportes
+        </a>
+    </div>
+</div>
+{% endblock %}

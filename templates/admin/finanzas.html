@@ -1,0 +1,700 @@
+{% extends "base.html" %}
+
+{% block title %}Gestión Financiera{% endblock %}
+
+{% block header %}💰 Gestión Financiera{% endblock %}
+
+{% block head %}
+<style>
+    * {
+        box-sizing: border-box;
+    }
+    
+    .finanzas-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 1rem;
+    }
+    
+    /* Header section - Responsive Flexbox */
+    .page-header {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        padding: 2rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 16px;
+        box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .page-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -20%;
+        width: 60%;
+        height: 120%;
+        background: rgba(255,255,255,0.1);
+        border-radius: 50%;
+        animation: float 8s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+        0%, 100% { transform: translateY(0px) rotate(0deg); }
+        50% { transform: translateY(-15px) rotate(180deg); }
+    }
+    
+    @media (min-width: 768px) {
+        .page-header {
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+        }
+    }
+    
+    .page-title {
+        font-size: clamp(1.5rem, 4vw, 2rem);
+        font-weight: 300;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-align: center;
+        z-index: 1;
+        position: relative;
+    }
+    
+    @media (min-width: 768px) {
+        .page-title {
+            text-align: left;
+        }
+    }
+    
+    .header-actions {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        justify-content: center;
+        z-index: 1;
+        position: relative;
+    }
+    
+    @media (min-width: 768px) {
+        .header-actions {
+            justify-content: flex-end;
+            flex-wrap: nowrap;
+        }
+    }
+    
+    /* Button styles */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.875rem 1.5rem;
+        border: none;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        position: relative;
+        overflow: hidden;
+        white-space: nowrap;
+    }
+    
+    .btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+        transition: left 0.5s;
+    }
+    
+    .btn:hover::before {
+        left: 100%;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        color: white;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+    
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #1d4ed8, #1e40af);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+    }
+    
+    .btn-success {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+    
+    .btn-success:hover {
+        background: linear-gradient(135deg, #059669, #047857);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+    }
+    
+    .btn-warning {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        color: white;
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    }
+    
+    .btn-warning:hover {
+        background: linear-gradient(135deg, #d97706, #b45309);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(245, 158, 11, 0.4);
+    }
+    
+    .btn-info {
+        background: linear-gradient(135deg, #06b6d4, #0891b2);
+        color: white;
+        box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
+    }
+    
+    .btn-info:hover {
+        background: linear-gradient(135deg, #0891b2, #0e7490);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(6, 182, 212, 0.4);
+    }
+    
+    /* Statistics section */
+    .stats-section {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    @media (min-width: 640px) {
+        .stats-section {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .stats-section {
+            grid-template-columns: repeat(4, 1fr);
+        }
+    }
+
+    .stat-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e5e7eb;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .stat-number {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
+        color: #6b7280;
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+
+    .stat-primary { border-top: 4px solid #3b82f6; }
+    .stat-primary .stat-number { color: #3b82f6; }
+
+    .stat-success { border-top: 4px solid #10b981; }
+    .stat-success .stat-number { color: #10b981; }
+
+    .stat-warning { border-top: 4px solid #f59e0b; }
+    .stat-warning .stat-number { color: #f59e0b; }
+
+    .stat-danger { border-top: 4px solid #ef4444; }
+    .stat-danger .stat-number { color: #ef4444; }
+    
+    /* Main grid layout */
+    .main-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    @media (min-width: 1024px) {
+        .main-grid {
+            grid-template-columns: 2fr 1fr;
+        }
+    }
+    
+    /* Financial operations section */
+    .operations-section {
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    
+    .section-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .operations-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    @media (min-width: 640px) {
+        .operations-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    
+    .operation-card {
+        background: #f8fafc;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1.5rem;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        text-decoration: none;
+        color: inherit;
+        display: block;
+    }
+    
+    .operation-card:hover {
+        border-color: #3b82f6;
+        background: #eff6ff;
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(59, 130, 246, 0.15);
+    }
+    
+    .operation-icon {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        display: block;
+    }
+    
+    .operation-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 0.5rem;
+    }
+    
+    .operation-description {
+        color: #6b7280;
+        font-size: 0.9rem;
+        line-height: 1.4;
+    }
+    
+    /* Quick actions sidebar */
+    .quick-actions {
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        height: fit-content;
+    }
+    
+    .action-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .action-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        background: #f8fafc;
+        border-radius: 10px;
+        text-decoration: none;
+        color: #374151;
+        transition: all 0.3s ease;
+        border: 1px solid #e5e7eb;
+    }
+    
+    .action-item:hover {
+        background: #eff6ff;
+        border-color: #3b82f6;
+        transform: translateX(5px);
+    }
+    
+    .action-icon-sm {
+        font-size: 1.5rem;
+        width: 40px;
+        text-align: center;
+    }
+    
+    .action-content {
+        flex: 1;
+    }
+    
+    .action-title {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+    
+    .action-subtitle {
+        font-size: 0.8rem;
+        color: #6b7280;
+    }
+    
+    /* Recent transactions section */
+    .transactions-section {
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        margin-top: 2rem;
+    }
+    
+    .transaction-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 0;
+        border-bottom: 1px solid #f3f4f6;
+    }
+    
+    .transaction-item:last-child {
+        border-bottom: none;
+    }
+    
+    .transaction-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .transaction-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+    }
+    
+    .transaction-icon.income {
+        background: #dcfce7;
+        color: #16a34a;
+    }
+    
+    .transaction-icon.expense {
+        background: #fee2e2;
+        color: #dc2626;
+    }
+    
+    .transaction-details h4 {
+        margin: 0 0 0.25rem 0;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+    
+    .transaction-details p {
+        margin: 0;
+        font-size: 0.8rem;
+        color: #6b7280;
+    }
+    
+    .transaction-amount {
+        font-weight: 600;
+        font-size: 1rem;
+    }
+    
+    .transaction-amount.positive {
+        color: #16a34a;
+    }
+    
+    .transaction-amount.negative {
+        color: #dc2626;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 640px) {
+        .finanzas-container {
+            padding: 0.5rem;
+        }
+        
+        .operations-section,
+        .quick-actions,
+        .transactions-section {
+            padding: 1.5rem;
+        }
+        
+        .operation-card {
+            padding: 1.25rem;
+        }
+        
+        .action-item {
+            padding: 0.875rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="finanzas-container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1 class="page-title">
+            💰 Gestión Financiera
+        </h1>
+        <div class="header-actions">
+            <button class="btn btn-success">
+                📊 Nuevo Reporte
+            </button>
+            <button class="btn btn-primary">
+                💳 Procesar Pagos
+            </button>
+        </div>
+    </div>
+
+    <!-- Statistics Section -->
+    <div class="stats-section">
+        <div class="stat-card stat-success">
+            <div class="stat-number">$2,450,000</div>
+            <div class="stat-label">Ingresos del Mes</div>
+        </div>
+        <div class="stat-card stat-warning">
+            <div class="stat-number">$890,000</div>
+            <div class="stat-label">Gastos del Mes</div>
+        </div>
+        <div class="stat-card stat-primary">
+            <div class="stat-number">$1,560,000</div>
+            <div class="stat-label">Saldo Disponible</div>
+        </div>
+        <div class="stat-card stat-danger">
+            <div class="stat-number">$125,000</div>
+            <div class="stat-label">Cartera Vencida</div>
+        </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="main-grid">
+        <!-- Financial Operations -->
+        <div class="operations-section">
+            <h2 class="section-title">
+                🏦 Operaciones Financieras
+            </h2>
+            
+            <div class="operations-grid">
+                <!-- Generación de Cargos Mensuales -->
+                <a href="/admin/pagos/generar-cargos" class="operation-card">
+                    <span class="operation-icon">🤖</span>
+                    <h3 class="operation-title">Cargos Mensuales</h3>
+                    <p class="operation-description">
+                        Generar cuotas de mantenimiento, administración e intereses por mora automáticamente
+                    </p>
+                </a>
+                
+                <!-- Registro de Pagos -->
+                <a href="#" class="operation-card" onclick="alert('Funcionalidad de Registro de Pagos')">
+                    <span class="operation-icon">💳</span>
+                    <h3 class="operation-title">Registro de Pagos</h3>
+                    <p class="operation-description">
+                        Registrar pagos recibidos de propietarios y aplicar a cuentas correspondientes
+                    </p>
+                </a>
+                
+                <!-- Estados de Cuenta -->
+                <a href="#" class="operation-card" onclick="alert('Funcionalidad de Estados de Cuenta')">
+                    <span class="operation-icon">📋</span>
+                    <h3 class="operation-title">Estados de Cuenta</h3>
+                    <p class="operation-description">
+                        Generar y enviar estados de cuenta detallados por apartamento
+                    </p>
+                </a>
+                
+                <!-- Gestión de Conceptos -->
+                <a href="#" class="operation-card" onclick="alert('Funcionalidad de Gestión de Conceptos')">
+                    <span class="operation-icon">🏷️</span>
+                    <h3 class="operation-title">Conceptos de Facturación</h3>
+                    <p class="operation-description">
+                        Administrar conceptos como cuotas, multas, gastos extraordinarios
+                    </p>
+                </a>
+                
+                <!-- Reportes Financieros -->
+                <a href="#" class="operation-card" onclick="alert('Funcionalidad de Reportes Financieros')">
+                    <span class="operation-icon">📈</span>
+                    <h3 class="operation-title">Reportes Financieros</h3>
+                    <p class="operation-description">
+                        Generar reportes de ingresos, gastos, morosidad y balance general
+                    </p>
+                </a>
+                
+                <!-- Presupuesto -->
+                <a href="#" class="operation-card" onclick="alert('Funcionalidad de Presupuesto')">
+                    <span class="operation-icon">📊</span>
+                    <h3 class="operation-title">Presupuesto Anual</h3>
+                    <p class="operation-description">
+                        Planificar y monitorear el presupuesto anual del edificio
+                    </p>
+                </a>
+            </div>
+        </div>
+        
+        <!-- Quick Actions Sidebar -->
+        <div class="quick-actions">
+            <h2 class="section-title">
+                ⚡ Acciones Rápidas
+            </h2>
+            
+            <div class="action-list">
+                <a href="#" class="action-item" onclick="alert('Generar Cargos del Mes Actual')">
+                    <span class="action-icon-sm">⚡</span>
+                    <div class="action-content">
+                        <div class="action-title">Generar Cargos</div>
+                        <div class="action-subtitle">Mes actual</div>
+                    </div>
+                </a>
+                
+                <a href="#" class="action-item" onclick="alert('Ver Pagos Pendientes')">
+                    <span class="action-icon-sm">⏰</span>
+                    <div class="action-content">
+                        <div class="action-title">Pagos Pendientes</div>
+                        <div class="action-subtitle">15 apartamentos</div>
+                    </div>
+                </a>
+                
+                <a href="#" class="action-item" onclick="alert('Calcular Intereses por Mora')">
+                    <span class="action-icon-sm">📈</span>
+                    <div class="action-content">
+                        <div class="action-title">Calcular Intereses</div>
+                        <div class="action-subtitle">Por mora</div>
+                    </div>
+                </a>
+                
+                <a href="#" class="action-item" onclick="alert('Exportar Estados de Cuenta')">
+                    <span class="action-icon-sm">📄</span>
+                    <div class="action-content">
+                        <div class="action-title">Exportar Estados</div>
+                        <div class="action-subtitle">PDF/Excel</div>
+                    </div>
+                </a>
+                
+                <a href="#" class="action-item" onclick="alert('Enviar Recordatorios de Pago')">
+                    <span class="action-icon-sm">📧</span>
+                    <div class="action-content">
+                        <div class="action-title">Recordatorios</div>
+                        <div class="action-subtitle">Email/SMS</div>
+                    </div>
+                </a>
+                
+                <a href="#" class="action-item" onclick="alert('Configurar Conceptos de Facturación')">
+                    <span class="action-icon-sm">⚙️</span>
+                    <div class="action-content">
+                        <div class="action-title">Configuración</div>
+                        <div class="action-subtitle">Conceptos</div>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Transactions -->
+    <div class="transactions-section">
+        <h2 class="section-title">
+            📋 Transacciones Recientes
+        </h2>
+        
+        <div class="transaction-item">
+            <div class="transaction-info">
+                <div class="transaction-icon income">
+                    💰
+                </div>
+                <div class="transaction-details">
+                    <h4>Pago Cuota - Apto 101</h4>
+                    <p>Propietario: María González - Hoy 2:30 PM</p>
+                </div>
+            </div>
+            <div class="transaction-amount positive">+$125,000</div>
+        </div>
+        
+        <div class="transaction-item">
+            <div class="transaction-info">
+                <div class="transaction-icon expense">
+                    💸
+                </div>
+                <div class="transaction-details">
+                    <h4>Mantenimiento Ascensor</h4>
+                    <p>Proveedor: TechElevators - Ayer 4:15 PM</p>
+                </div>
+            </div>
+            <div class="transaction-amount negative">-$85,000</div>
+        </div>
+        
+        <div class="transaction-item">
+            <div class="transaction-info">
+                <div class="transaction-icon income">
+                    💰
+                </div>
+                <div class="transaction-details">
+                    <h4>Pago Cuota - Apto 205</h4>
+                    <p>Propietario: Carlos Rodríguez - Ayer 1:20 PM</p>
+                </div>
+            </div>
+            <div class="transaction-amount positive">+$125,000</div>
+        </div>
+        
+        <div class="transaction-item">
+            <div class="transaction-info">
+                <div class="transaction-icon income">
+                    💰
+                </div>
+                <div class="transaction-details">
+                    <h4>Intereses por Mora - Apto 308</h4>
+                    <p>Propietario: Ana Martínez - 2 días</p>
+                </div>
+            </div>
+            <div class="transaction-amount positive">+$15,000</div>
+        </div>
+        
+        <div class="transaction-item">
+            <div class="transaction-info">
+                <div class="transaction-icon expense">
+                    💸
+                </div>
+                <div class="transaction-details">
+                    <h4>Servicios Públicos</h4>
+                    <p>Empresa de Servicios - 3 días</p>
+                </div>
+            </div>
+            <div class="transaction-amount negative">-$240,000</div>
+        </div>
+    </div>
+</div>
+{% endblock %}

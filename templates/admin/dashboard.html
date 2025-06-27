@@ -1,0 +1,674 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Administrador{% endblock %}
+
+{% block header %}🏢 Edificio Mirador de Altavista 🏢{% endblock %}
+
+{% block head %}
+<style>
+    .admin-container {
+        display: grid;
+        gap: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    /* Header con información del admin */
+    .admin-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2.5rem;
+        border-radius: 20px;
+        box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 1rem;
+    }
+    
+    .admin-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 100%;
+        height: 100%;
+        background: rgba(255,255,255,0.1);
+        border-radius: 50%;
+        animation: float 6s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+        0%, 100% { transform: translateY(0px) rotate(0deg); }
+        50% { transform: translateY(-10px) rotate(180deg); }
+    }
+    
+    .admin-header::after {
+        content: '';
+        position: absolute;
+        bottom: -30%;
+        left: -20%;
+        width: 80%;
+        height: 80%;
+        background: rgba(255,255,255,0.05);
+        border-radius: 50%;
+        animation: float 8s ease-in-out infinite reverse;
+    }
+    
+    .admin-header h1 {
+        margin: 0 0 0.5rem 0;
+        font-size: 2.5rem;
+        font-weight: 300;
+        position: relative;
+        z-index: 2;
+        text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+    
+    .admin-subtitle {
+        opacity: 0.95;
+        font-size: 1.2rem;
+        margin: 0;
+        position: relative;
+        z-index: 2;
+        font-weight: 300;
+    }
+    
+    /* Badge de estado del sistema */
+    .system-status {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        background: rgba(255,255,255,0.2);
+        backdrop-filter: blur(10px);
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        border: 1px solid rgba(255,255,255,0.3);
+    }
+    
+    .status-indicator {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        background: #2ecc71;
+        border-radius: 50%;
+        margin-right: 0.5rem;
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7); }
+        70% { box-shadow: 0 0 0 10px rgba(46, 204, 113, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0); }
+    }
+    
+    /* Grid de estadísticas */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin: 2rem 0;
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.06);
+        transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+        background: linear-gradient(180deg, var(--accent-color), var(--accent-color-light));
+        transition: width 0.3s ease;
+    }
+    
+    .stat-card:hover::before {
+        width: 8px;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-8px) scale(1.02);
+        box-shadow: 0 15px 40px rgba(0,0,0,0.1);
+    }
+    
+    .stat-card.primary {
+        --accent-color: #3498db;
+        --accent-color-light: #74b9ff;
+    }
+    
+    .stat-card.success {
+        --accent-color: #2ecc71;
+        --accent-color-light: #55e394;
+    }
+    
+    .stat-card.warning {
+        --accent-color: #f39c12;
+        --accent-color-light: #fdcb6e;
+    }
+    
+    .stat-card.info {
+        --accent-color: #9b59b6;
+        --accent-color-light: #c39bd3;
+    }
+    
+    .stat-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+    }
+    
+    .stat-icon {
+        width: 70px;
+        height: 70px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.8rem;
+        color: white;
+        background: linear-gradient(135deg, var(--accent-color), var(--accent-color-light));
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .stat-icon::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: linear-gradient(45deg, transparent, rgba(255,255,255,0.2), transparent);
+        animation: shimmer 3s linear infinite;
+    }
+    
+    @keyframes shimmer {
+        0% { transform: translateX(-100%) translateY(-100%) rotate(30deg); }
+        100% { transform: translateX(100%) translateY(100%) rotate(30deg); }
+    }
+    
+    .stat-number {
+        font-size: 3rem;
+        font-weight: 700;
+        color: #2c3e50;
+        margin: 0;
+        line-height: 1;
+        background: linear-gradient(135deg, #2c3e50, #3498db);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    
+    .stat-label {
+        color: #7f8c8d;
+        font-size: 0.95rem;
+        margin: 0.5rem 0 0 0;
+        font-weight: 500;
+    }
+    
+    .stat-trend {
+        font-size: 0.85rem;
+        margin-top: 0.5rem;
+    }
+    
+    .trend-positive {
+        color: #2ecc71;
+    }
+    
+    .trend-negative {
+        color: #e74c3c;
+    }
+    
+    /* Grid principal del dashboard */
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 2rem;
+        margin-top: 2rem;
+    }
+    
+    /* Panel de accesos rápidos */
+    .quick-actions {
+        background: white;
+        border-radius: 20px;
+        padding: 2.5rem;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.06);
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .quick-actions h3 {
+        margin: 0 0 2.5rem 0;
+        color: #2c3e50;
+        font-size: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 600;
+    }
+    
+    .actions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 1rem;
+    }
+    
+    .action-btn {
+        background: white;
+        border: 2px solid #e1e8ed;
+        border-radius: 16px;
+        padding: 2rem 1rem;
+        text-decoration: none;
+        text-align: center;
+        transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        color: #2c3e50;
+        position: relative;
+        overflow: hidden;
+        min-height: 120px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .action-btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, 
+            transparent, 
+            rgba(255,255,255,0.4), 
+            transparent);
+        transition: left 0.6s ease;
+    }
+    
+    .action-btn::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, 
+            var(--action-color), 
+            var(--action-color-light));
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        z-index: -1;
+    }
+    
+    .action-btn:hover::before {
+        left: 100%;
+    }
+    
+    .action-btn:hover::after {
+        opacity: 0.1;
+    }
+    
+    .action-btn:hover {
+        transform: translateY(-6px) scale(1.05);
+        border-color: var(--action-color);
+        box-shadow: 0 12px 35px rgba(0,0,0,0.15);
+        color: var(--action-color);
+    }
+    
+    .action-btn.primary {
+        --action-color: #3498db;
+        --action-color-light: #74b9ff;
+    }
+    
+    .action-btn.success {
+        --action-color: #2ecc71;
+        --action-color-light: #55e394;
+    }
+    
+    .action-btn.warning {
+        --action-color: #f39c12;
+        --action-color-light: #fdcb6e;
+    }
+    
+    .action-btn.info {
+        --action-color: #9b59b6;
+        --action-color-light: #c39bd3;
+    }
+    
+    .action-btn.danger {
+        --action-color: #e74c3c;
+        --action-color-light: #fd7979;
+    }
+    
+    .action-icon {
+        font-size: 2.5rem;
+        display: block;
+        margin-bottom: 0.75rem;
+        transition: transform 0.3s ease;
+    }
+    
+    .action-btn:hover .action-icon {
+        transform: scale(1.1) rotate(5deg);
+    }
+    
+    .action-label {
+        font-size: 0.9rem;
+        font-weight: 500;
+        line-height: 1.3;
+    }
+    
+    /* Panel lateral */
+    .sidebar-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+    
+    .panel-card {
+        background: white;
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.06);
+        border: 1px solid rgba(0,0,0,0.05);
+        transition: transform 0.3s ease;
+    }
+    
+    .panel-card:hover {
+        transform: translateY(-2px);
+    }
+    
+    .panel-card h4 {
+        margin: 0 0 1.5rem 0;
+        color: #2c3e50;
+        font-size: 1.2rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    /* Notificaciones */
+    .notification {
+        background: #f8f9fa;
+        border-left: 4px solid var(--notif-color);
+        padding: 1rem;
+        border-radius: 0 8px 8px 0;
+        margin-bottom: 1rem;
+    }
+    
+    .notification:last-child {
+        margin-bottom: 0;
+    }
+    
+    .notification.warning {
+        --notif-color: #f39c12;
+        background: #fef9e7;
+    }
+    
+    .notification.info {
+        --notif-color: #3498db;
+        background: #e8f4fd;
+    }
+    
+    .notification.success {
+        --notif-color: #2ecc71;
+        background: #e8f8f0;
+    }
+    
+    .notification-title {
+        font-weight: 600;
+        color: #2c3e50;
+        margin: 0 0 0.25rem 0;
+    }
+    
+    .notification-text {
+        margin: 0;
+        color: #5f6368;
+        font-size: 0.9rem;
+    }
+    
+    /* Lista de tareas */
+    .task-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #f1f3f4;
+    }
+    
+    .task-item:last-child {
+        border-bottom: none;
+    }
+    
+    .task-name {
+        color: #2c3e50;
+        font-weight: 500;
+    }
+    
+    .task-badge {
+        background: var(--badge-color);
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+    
+    .task-badge.primary {
+        --badge-color: #3498db;
+    }
+    
+    .task-badge.warning {
+        --badge-color: #f39c12;
+    }
+    
+    .task-badge.success {
+        --badge-color: #2ecc71;
+    }
+    
+    /* Responsive */
+    @media (max-width: 1024px) {
+        .dashboard-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .stats-grid {
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .admin-header h1 {
+            font-size: 1.5rem;
+        }
+        
+        .admin-subtitle {
+            font-size: 1rem;
+        }
+        
+        .actions-grid {
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        }
+        
+        .action-btn {
+            padding: 1rem 0.5rem;
+        }
+        
+        .action-icon {
+            font-size: 1.5rem;
+        }
+        
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-header">
+    <div class="system-status">
+        <span class="status-indicator"></span>
+        Sistema Operativo
+    </div>
+    <h1>🔧 Panel de Administración</h1>
+    <p class="admin-subtitle">Control completo del sistema de gestión de propiedades</p>
+</div>
+
+<!-- Estadísticas principales -->
+<div class="stats-grid">
+    <div class="stat-card primary">
+        <div class="stat-header">
+            <div>
+                <p class="stat-number">{{ stats.total_apartamentos if stats else '20' }}</p>
+                <p class="stat-label">Total Apartamentos</p>
+            </div>
+            <div class="stat-icon">🏠</div>
+        </div>
+    </div>
+    
+    <div class="stat-card success">
+        <div class="stat-header">
+            <div>
+                <p class="stat-number">{{ stats.total_propietarios if stats else '15' }}</p>
+                <p class="stat-label">Propietarios Activos</p>
+            </div>
+            <div class="stat-icon">👥</div>
+        </div>
+    </div>
+    
+
+    
+    <div class="stat-card info">
+        <div class="stat-header">
+            <div>
+                <p class="stat-number">Hoy</p>
+                <p class="stat-label">Fecha Actual</p>
+                <p class="stat-trend">📅 {{ stats.fecha_actual if stats else '23/06' }}</p>
+            </div>
+            <div class="stat-icon">📅</div>
+        </div>
+    </div>
+</div>
+
+<!-- Grid principal del dashboard -->
+<div class="dashboard-grid">
+    <!-- Panel de accesos rápidos -->
+    <div class="quick-actions">
+        <h3>🚀 Accesos Rápidos</h3>
+        
+        <div class="actions-grid">
+            <a href="/admin/propietarios" class="action-btn primary">
+                <span class="action-icon">👥</span>
+                <span class="action-label">Gestionar<br>Propietarios</span>
+            </a>
+            
+            <a href="/admin/apartamentos" class="action-btn success">
+                <span class="action-icon">🏘️</span>
+                <span class="action-label">Gestionar<br>Apartamentos</span>
+            </a>
+            
+            <a href="/admin/pagos/procesar" class="action-btn info">
+                <span class="action-icon">💳</span>
+                <span class="action-label">Sistema de<br>Pagos</span>
+            </a>
+            
+            <a href="/admin/finanzas" class="action-btn warning">
+                <span class="action-icon">💰</span>
+                <span class="action-label">Gestión<br>Financiera</span>
+            </a>
+            
+            <a href="/admin/presupuestos" class="action-btn primary">
+                <span class="action-icon">📊</span>
+                <span class="action-label">Presupuestos<br>& Informes</span>
+            </a>
+            
+            <a href="#" class="action-btn info">
+                <span class="action-icon">⚙️</span>
+                <span class="action-label">Configuración<br>del Sistema</span>
+            </a>
+            
+            <a href="#" class="action-btn success">
+                <span class="action-icon">📈</span>
+                <span class="action-label">Analytics<br>& Reportes</span>
+            </a>
+            
+            <a href="/logout" class="action-btn danger">
+                <span class="action-icon">🚪</span>
+                <span class="action-label">Cerrar<br>Sesión</span>
+            </a>
+        </div>
+    </div>
+    
+    <!-- Panel lateral -->
+    <div class="sidebar-panel">
+        <!-- Notificaciones 
+        <div class="panel-card">
+            <h4>🔔 Notificaciones Recientes</h4>
+            
+            <div class="notification warning">
+                <p class="notification-title">⚠️ Recordatorio Importante</p>
+                <p class="notification-text">Revisar cuotas pendientes del mes actual - {{ stats.apartamentos_sin_propietario if stats else '3' }} casos pendientes</p>
+            </div>
+            
+            <div class="notification info">
+                <p class="notification-title">ℹ️ Estado del Sistema</p>
+                <p class="notification-text">{{ stats.apartamentos_sin_propietario if stats else '3' }} apartamentos requieren asignación de propietario</p>
+            </div>
+            
+            <div class="notification success">
+                <p class="notification-title">✅ Backup Completado</p>
+                <p class="notification-text">Respaldo automático ejecutado exitosamente a las 02:00 AM</p>
+            </div>
+        </div>
+        
+
+        
+        <!-- Estadísticas rápidas -->
+        <div class="panel-card">
+            <h4>📊 Resumen Financiero</h4>
+            
+            <div style="display: grid; gap: 1.25rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: #f8f9fa; border-radius: 12px;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="color: #2ecc71; font-size: 1.2rem;">📈</span>
+                        <span style="color: #7f8c8d; font-weight: 500;">Tasa de Ocupación:</span>
+                    </div>
+                    <span style="font-weight: 700; color: #2ecc71; font-size: 1.1rem;">85%</span>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: #f8f9fa; border-radius: 12px;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="color: #3498db; font-size: 1.2rem;">💰</span>
+                        <span style="color: #7f8c8d; font-weight: 500;">Ingresos Mensuales:</span>
+                    </div>
+                    <span style="font-weight: 700; color: #3498db; font-size: 1.1rem;">$125,400</span>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: #f8f9fa; border-radius: 12px;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="color: #e74c3c; font-size: 1.2rem;">📊</span>
+                        <span style="color: #7f8c8d; font-weight: 500;">Gastos Mensuales:</span>
+                    </div>
+                    <span style="font-weight: 700; color: #e74c3c; font-size: 1.1rem;">$87,200</span>
+                </div>
+                
+                <div style="margin-top: 0.5rem; padding: 0.75rem; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border-radius: 12px; text-align: center;">
+                    <div style="font-size: 0.9rem; opacity: 0.9; margin-bottom: 0.25rem;">Beneficio Neto</div>
+                    <div style="font-size: 1.3rem; font-weight: 700;">$38,200</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+
+{% block title %}Presupuesto {{ presupuesto.año }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3">
+                <i class="fas fa-chart-line"></i> Presupuesto Anual {{ presupuesto.año }}
+            </h1>
+            <p class="mb-0 text-muted">{{ presupuesto.descripcion }}</p>
+        </div>
+        <div>
+            <button class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#modalNuevoItem">
+                <i class="fas fa-plus"></i> Nuevo Item
+            </button>
+            <a href="/admin/finanzas" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Volver
+            </a>
+        </div>
+    </div>
+
+    <!-- Resumen financiero -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Ingresos Presupuestados</h5>
+                    <h3 class="mb-0">${{ "%.2f"|format(total_ingresos) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Gastos Presupuestados</h5>
+                    <h3 class="mb-0">${{ "%.2f"|format(total_gastos) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card {% if balance >= 0 %}bg-info{% else %}bg-warning{% endif %} text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Balance Proyectado</h5>
+                    <h3 class="mb-0">${{ "%.2f"|format(balance) }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs para ingresos y gastos -->
+    <ul class="nav nav-tabs mb-3" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="ingresos-tab" data-bs-toggle="tab" data-bs-target="#ingresos" type="button" role="tab">
+                <i class="fas fa-arrow-up text-success"></i> Ingresos
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="gastos-tab" data-bs-toggle="tab" data-bs-target="#gastos" type="button" role="tab">
+                <i class="fas fa-arrow-down text-danger"></i> Gastos
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+        <!-- Tab Ingresos -->
+        <div class="tab-pane fade show active" id="ingresos" role="tabpanel">
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Concepto</th>
+                                    <th>Descripción</th>
+                                    <th class="text-end">Monto</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% set ingresos = items|selectattr("tipo_item.value", "equalto", "INGRESO")|list %}
+                                {% if ingresos %}
+                                    {% for item in ingresos %}
+                                    <tr>
+                                        <td>{{ item.concepto.nombre }}</td>
+                                        <td>{{ item.descripcion or "-" }}</td>
+                                        <td class="text-end text-success">${{ "%.2f"|format(item.monto_presupuestado) }}</td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-danger" 
+                                                        onclick="eliminarItem({{ presupuesto.id }}, {{ item.id }}, '{{ item.concepto.nombre }}')"
+                                                        title="Eliminar">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-3">
+                                        <div class="alert alert-info mb-0">
+                                            <i class="fas fa-info-circle me-2"></i>
+                                            No hay ingresos presupuestados. Añada algunos usando el botón "Nuevo Item".
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                            <tfoot class="table-success">
+                                <tr>
+                                    <td colspan="2" class="text-end">
+                                        <strong>Total Ingresos</strong>
+                                    </td>
+                                    <td class="text-end">
+                                        <strong>${{ "%.2f"|format(total_ingresos) }}</strong>
+                                    </td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Gastos -->
+        <div class="tab-pane fade" id="gastos" role="tabpanel">
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Concepto</th>
+                                    <th>Descripción</th>
+                                    <th class="text-end">Monto</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% set gastos = items|selectattr("tipo_item.value", "equalto", "GASTO")|list %}
+                                {% if gastos %}
+                                    {% for item in gastos %}
+                                    <tr>
+                                        <td>{{ item.concepto.nombre }}</td>
+                                        <td>{{ item.descripcion or "-" }}</td>
+                                        <td class="text-end text-danger">${{ "%.2f"|format(item.monto_presupuestado) }}</td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-danger" 
+                                                        onclick="eliminarItem({{ presupuesto.id }}, {{ item.id }}, '{{ item.concepto.nombre }}')"
+                                                        title="Eliminar">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-3">
+                                        <div class="alert alert-info mb-0">
+                                            <i class="fas fa-info-circle me-2"></i>
+                                            No hay gastos presupuestados. Añada algunos usando el botón "Nuevo Item".
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                            <tfoot class="table-danger">
+                                <tr>
+                                    <td colspan="2" class="text-end">
+                                        <strong>Total Gastos</strong>
+                                    </td>
+                                    <td class="text-end">
+                                        <strong>${{ "%.2f"|format(total_gastos) }}</strong>
+                                    </td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nuevo Item -->
+<div class="modal fade" id="modalNuevoItem" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus-circle"></i> Nuevo Item de Presupuesto
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="/admin/presupuestos/{{ presupuesto.id }}/items/crear">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Tipo de Item *</label>
+                        <div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="tipo" id="tipo_ingreso" value="ingreso" checked>
+                                <label class="form-check-label" for="tipo_ingreso">
+                                    <span class="badge bg-success">Ingreso</span> - Entrada de dinero
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="tipo" id="tipo_gasto" value="gasto">
+                                <label class="form-check-label" for="tipo_gasto">
+                                    <span class="badge bg-danger">Gasto</span> - Salida de dinero
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="concepto_id" class="form-label">Concepto *</label>
+                        <select class="form-select" name="concepto_id" id="concepto_id" required>
+                            <option value="">Seleccionar concepto...</option>
+                            {% for concepto in conceptos %}
+                            <option value="{{ concepto.id }}">{{ concepto.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="monto" class="form-label">Monto *</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" name="monto" id="monto" step="0.01" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="descripcion" class="form-label">Descripción (Opcional)</label>
+                        <textarea class="form-control" name="descripcion" id="descripcion" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Guardar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function eliminarItem(presupuestoId, itemId, nombreConcepto) {
+    if (confirm(`¿Está seguro de eliminar el item "${nombreConcepto}" del presupuesto?\n\nEsta acción no se puede deshacer.`)) {
+        const form = document.createElement('form');
+        form.method = 'post';
+        form.action = `/admin/presupuestos/${presupuestoId}/items/${itemId}/eliminar`;
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+</script>
+{% endblock %}

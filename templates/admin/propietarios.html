@@ -1,0 +1,1107 @@
+{% extends "base.html" %}
+
+{% block title %}Gestión de Propietarios{% endblock %}
+
+{% block header %}👥 Gestión de Propietarios{% endblock %}
+
+{% block head %}
+<style>
+    * {
+        box-sizing: border-box;
+    }
+    
+    .propietarios-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 1rem;
+    }
+    
+    /* Header section - Responsive Flexbox */
+    .page-header {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        padding: 2rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 16px;
+        box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+        margin-bottom: 2rem;
+    }
+    
+    @media (min-width: 768px) {
+        .page-header {
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+        }
+    }
+    
+    .page-title {
+        font-size: clamp(1.5rem, 4vw, 2rem);
+        font-weight: 300;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-align: center;
+    }
+    
+    @media (min-width: 768px) {
+        .page-title {
+            text-align: left;
+        }
+    }
+    
+    .add-btn {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        padding: 0.75rem 1.5rem;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        backdrop-filter: blur(10px);
+        width: 100%;
+        max-width: 300px;
+        margin: 0 auto;
+    }
+    
+    @media (min-width: 768px) {
+        .add-btn {
+            width: auto;
+            margin: 0;
+        }
+    }
+    
+    .add-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+        border-color: rgba(255, 255, 255, 0.5);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    }
+    
+    /* Alert messages */
+    .alert {
+        padding: 1rem 1.5rem;
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+        border-left: 4px solid;
+        position: relative;
+        animation: slideIn 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    
+    .alert-error {
+        background: #fef2f2;
+        border-color: #dc2626;
+        color: #991b1b;
+    }
+    
+    .alert-success {
+        background: #f0fdf4;
+        border-color: #16a34a;
+        color: #166534;
+    }
+    
+    .alert-close {
+        margin-left: auto;
+        background: none;
+        border: none;
+        font-size: 1.2rem;
+        cursor: pointer;
+        color: inherit;
+        padding: 0;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: background 0.2s ease;
+        flex-shrink: 0;
+    }
+    
+    .alert-close:hover {
+        background: rgba(0, 0, 0, 0.1);
+    }
+    
+    @keyframes slideIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Table container - Card Layout */
+    .table-container {
+        background: white;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+     /* Card Grid Layout */
+    .propietarios-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+        padding: 1.5rem;
+    }
+
+    @media (min-width: 640px) {
+        .propietarios-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .propietarios-grid {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+        }
+    }
+
+    @media (min-width: 1400px) {
+        .propietarios-grid {
+            grid-template-columns: repeat(4, 1fr);
+        }
+    }
+
+    /* Individual Card Styling */
+    .propietario-card {
+        background: white;
+        border-radius: 16px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+        border: 1px solid #e5e7eb;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        min-height: 320px;
+    }
+
+    .propietario-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+        border-color: #3b82f6;
+    }
+
+    .propietario-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    /* Card Header */
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+        gap: 1rem;
+    }
+    
+    .card-id {
+        background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+        color: #374151;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        flex-shrink: 0;
+    }
+     /* Card Content */
+    .card-content {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        flex-grow: 1;
+    }
+
+    .card-field {
+        margin-bottom: 0;
+    }
+
+    .field-label {
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: #6b7280;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .field-value {
+        font-size: 0.95rem;
+        color: #1f2937;
+        line-height: 1.5;
+    }
+
+    .field-value.highlight {
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: #1f2937;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    /* Card Footer */
+    .card-footer {
+        margin-top: auto;
+        padding-top: 1.5rem;
+        border-top: 1px solid #f3f4f6;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    /* Responsive adjustments for cards */
+    @media (max-width: 640px) {
+        .propietarios-grid {
+            gap: 1rem;
+            padding: 1rem;
+        }
+        
+        .propietario-card {
+            padding: 1.25rem;
+            min-height: 280px;
+        }
+        
+        .card-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+        
+        .card-footer {
+            padding-top: 1rem;
+        }
+        
+        .action-buttons {
+            gap: 1rem;
+        }
+        
+        .action-btn {
+            width: 40px;
+            height: 40px;
+            font-size: 1rem;
+        }
+    }
+    
+    /* Hide table styles when using cards */
+    .use-cards .modern-table,
+    .use-cards .scroll-hint {
+        display: none;
+    }
+    
+    .use-cards .table-container {
+        background: transparent;
+        box-shadow: none;
+        border: none;
+    }
+    
+    /* User info styling */
+    .user-name {
+        font-weight: 600;
+        color: #1f2937;
+        font-size: 0.95rem;
+        line-height: 1.4;
+    }
+    
+    @media (min-width: 768px) {
+        .user-name {
+            font-size: 1rem;
+        }
+    }
+     .user-document {
+        color: #6b7280;
+        font-family: 'Courier New', monospace;
+        background: #f3f4f6;
+        padding: 0.25rem 0.5rem;
+        border-radius: 6px;
+        font-size: 0.8rem;
+        display: inline-block;
+        margin-top: 0.25rem;
+        border: 1px solid #e5e7eb;
+    }
+
+    @media (min-width: 768px) {
+        .user-document {
+            font-size: 0.85rem;
+            margin-top: 0;
+        }
+    }
+
+    .user-email {
+        color: #3b82f6;
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 0.9rem;
+        word-break: break-all;
+        padding: 0.25rem 0.5rem;
+        background: #eff6ff;
+        border-radius: 6px;
+        border: 1px solid #dbeafe;
+        display: inline-block;
+        transition: all 0.2s ease;
+    }
+
+    .user-email:hover {
+        background: #dbeafe;
+        text-decoration: none;
+        transform: translateY(-1px);
+    }
+
+    .no-data {
+        color: #9ca3af;
+        font-style: italic;
+        font-size: 0.85rem;
+        background: #f9fafb;
+        padding: 0.25rem 0.5rem;
+        border-radius: 6px;
+        border: 1px solid #e5e7eb;
+        display: inline-block;
+    }
+
+    @media (min-width: 768px) {
+        .no-data {
+            font-size: 0.9rem;
+        }
+    }
+    
+    /* Badge styling - Responsive */
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.4rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        color: white;
+        min-width: 40px;
+        justify-content: center;
+    }
+    
+    @media (min-width: 768px) {
+        .badge {
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+            min-width: 50px;
+        }
+    }
+    
+    /* Apartment numbers styling - Responsive Grid */
+    .apartment-numbers {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(35px, 1fr));
+        gap: 0.25rem;
+        max-width: 180px;
+    }
+    
+    @media (min-width: 768px) {
+        .apartment-numbers {
+            grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
+            max-width: 200px;
+        }
+    }
+    
+    .apartment-number {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.2rem 0.4rem;
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        min-width: 28px;
+        height: 22px;
+        text-align: center;
+    }
+    
+    @media (min-width: 768px) {
+        .apartment-number {
+            padding: 0.25rem 0.5rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            height: 24px;
+            min-width: 32px;
+        }
+    }
+    
+    .no-apartments {
+        color: #9ca3af;
+        font-style: italic;
+        font-size: 0.8rem;
+        padding: 0.5rem;
+    }
+    
+    @media (min-width: 768px) {
+        .no-apartments {
+            font-size: 0.9rem;
+        }
+    }
+     /* Action buttons - Responsive Flexbox */
+    .action-buttons {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .action-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        border: none;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 1.1rem;
+        color: white;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .action-btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+        transition: left 0.5s;
+    }
+
+    .action-btn:hover::before {
+        left: 100%;
+    }
+
+    .action-btn.edit {
+        background: linear-gradient(135deg, #10b981, #059669);
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+
+    .action-btn.edit:hover {
+        background: linear-gradient(135deg, #059669, #047857);
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+    }
+
+    .action-btn.delete {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    }
+
+    .action-btn.delete:hover {
+        background: linear-gradient(135deg, #dc2626, #b91c1c);
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4);
+    }
+    
+    /* Modal styling - Responsive */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(4px);
+        z-index: 1000;
+        animation: fadeIn 0.3s ease;
+        padding: 1rem;
+    }
+    
+    .modal-overlay.show {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .modal-content {
+        background: white;
+        border-radius: 20px;
+        width: 100%;
+        max-width: 500px;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        animation: slideUp 0.3s ease;
+    }
+    
+    .modal-header {
+        padding: 1.5rem 1.5rem 1rem 1.5rem;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: sticky;
+        top: 0;
+        background: white;
+        border-radius: 20px 20px 0 0;
+    }
+    
+    @media (min-width: 768px) {
+        .modal-header {
+            padding: 2rem 2rem 1rem 2rem;
+        }
+    }
+    
+    .modal-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    @media (min-width: 768px) {
+        .modal-title {
+            font-size: 1.5rem;
+        }
+    }
+    
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: #6b7280;
+        padding: 0;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: all 0.2s ease;
+        flex-shrink: 0;
+    }
+    
+    .modal-close:hover {
+        background: #f3f4f6;
+        color: #374151;
+    }
+    
+    .modal-body {
+        padding: 1rem 1.5rem;
+    }
+    
+    @media (min-width: 768px) {
+        .modal-body {
+            padding: 1.5rem 2rem;
+        }
+    }
+    
+    .modal-footer {
+        padding: 1rem 1.5rem 1.5rem 1.5rem;
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+    }
+    
+    @media (min-width: 768px) {
+        .modal-footer {
+            padding: 0 2rem 2rem 2rem;
+            flex-wrap: nowrap;
+        }
+    }
+    
+    /* Form styling - Responsive */
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: #374151;
+        font-size: 0.9rem;
+    }
+    
+    .form-input {
+        width: 100%;
+        padding: 0.875rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 10px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        background: #f9fafb;
+        box-sizing: border-box;
+    }
+    
+    .form-input:focus {
+        outline: none;
+        border-color: #3b82f6;
+        background: white;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    
+    .form-input:required {
+        border-left: 4px solid #f59e0b;
+    }
+    
+    /* Button styling - Responsive */
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 10px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        min-width: 120px;
+        flex: 1;
+    }
+    
+    @media (min-width: 768px) {
+        .btn {
+            flex: none;
+            min-width: auto;
+        }
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        color: white;
+    }
+    
+    .btn-secondary {
+        background: #6b7280;
+        color: white;
+    }
+    
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+    
+    /* Empty state styling */
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: #6b7280;
+    }
+    
+    @media (min-width: 768px) {
+        .empty-state {
+            padding: 4rem 2rem;
+        }
+    }
+    
+    .empty-state-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+    
+    @media (min-width: 768px) {
+        .empty-state-icon {
+            font-size: 4rem;
+        }
+    }
+    
+    .empty-state h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: #374151;
+    }
+    
+    @media (min-width: 768px) {
+        .empty-state h3 {
+            font-size: 1.5rem;
+        }
+    }
+    
+    .empty-state p {
+        font-size: 1rem;
+        margin-bottom: 2rem;
+        max-width: 400px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    @keyframes slideUp {
+        from { transform: translateY(30px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    
+    /* Utility classes for responsive design */
+    .hidden-mobile {
+        display: none;
+    }
+    
+    @media (min-width: 768px) {
+        .hidden-mobile {
+            display: table-cell;
+        }
+    }
+    
+    .mobile-only {
+        display: block;
+    }
+    
+    @media (min-width: 768px) {
+        .mobile-only {
+            display: none;
+        }
+    }
+    
+    /* Scroll hint for tables */
+    .scroll-hint {
+        text-align: center;
+        padding: 0.5rem;
+        font-size: 0.8rem;
+        color: #6b7280;
+        background: #f9fafb;
+        border-top: 1px solid #e5e7eb;
+    }
+    
+    @media (min-width: 768px) {
+        .scroll-hint {
+            display: none;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="propietarios-container">
+    <!-- Alert messages -->
+    {% if error %}
+    <div class="alert alert-error">
+        ⚠️ {{ error }}
+        <button class="alert-close" data-close-alert>&times;</button>
+    </div>
+    {% endif %}
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1 class="page-title">
+            👥 Gestión de Propietarios
+        </h1>
+        <button class="add-btn" data-modal="modalNuevoPropietario">
+            ➕ Nuevo Propietario
+        </button>
+    </div>
+
+    <!-- Cards Container -->
+    <div class="table-container use-cards">
+        {% if propietarios %}
+        <div class="propietarios-grid">
+            {% for propietario in propietarios %}
+            <div class="propietario-card">               
+                <!-- Card Content -->
+                <div class="card-content">
+                    <!-- Nombre del propietario -->
+                    <div class="card-field">
+                        <span class="field-label">Nombre Completo</span>
+                        <div class="field-value highlight">{{ propietario.nombre_completo }}</div>
+                    </div>
+                    
+                    <!-- Documento -->
+                    <div class="card-field">
+                        <span class="field-label">Documento</span>
+                        <div class="field-value">
+                            <span class="user-document">{{ propietario.documento_identidad }}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Email -->
+                    <div class="card-field">
+                        <span class="field-label">Email</span>
+                        <div class="field-value">
+                            {% if propietario.email %}
+                                <a href="mailto:{{ propietario.email }}" class="user-email">{{ propietario.email }}</a>
+                            {% else %}
+                                <span class="no-data">No registrado</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Teléfono -->
+                    <div class="card-field">
+                        <span class="field-label">Teléfono</span>
+                        <div class="field-value">
+                            {% if propietario.telefono %}
+                                {{ propietario.telefono }}
+                            {% else %}
+                                <span class="no-data">No registrado</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Apartamentos -->
+                    <div class="card-field">
+                        <span class="field-label">Apartamentos</span>
+                        <div class="field-value">
+                            {% if propietario.apartamentos and propietario.apartamentos|length > 0 %}
+                                <div class="apartment-numbers">
+                                    {% for apartamento in propietario.apartamentos %}
+                                        <span class="apartment-number">{{ apartamento.identificador }}</span>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <span class="no-apartments">Sin apartamentos asignados</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Card Footer con acciones -->
+                <div class="card-footer">
+                    <div class="action-buttons">
+                        <button class="action-btn edit" 
+                                data-id="{{ propietario.id }}"
+                                data-nombre="{{ propietario.nombre_completo }}"
+                                data-documento="{{ propietario.documento_identidad }}"
+                                data-email="{{ propietario.email or '' }}"
+                                data-telefono="{{ propietario.telefono or '' }}"
+                                title="Editar propietario">
+                            ✏️
+                        </button>
+                        <button class="action-btn delete" 
+                                data-id="{{ propietario.id }}"
+                                data-nombre="{{ propietario.nombre_completo }}"
+                                title="Eliminar propietario">
+                            🗑️
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">👥</div>
+            <h3>No hay propietarios registrados</h3>
+            <p>Comienza agregando el primer propietario del edificio</p>
+            <button class="btn btn-primary" data-modal="modalNuevoPropietario">
+                ➕ Agregar Primer Propietario
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal Nuevo Propietario -->
+<div class="modal-overlay" id="modalNuevoPropietario">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title">
+                👤 Nuevo Propietario
+            </h2>
+            <button class="modal-close" data-close="modalNuevoPropietario">&times;</button>
+        </div>
+        <form method="post" action="/admin/propietarios/crear">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="nombre_completo" class="form-label">Nombre Completo *</label>
+                    <input type="text" class="form-input" name="nombre_completo" required>
+                </div>
+                <div class="form-group">
+                    <label for="documento_identidad" class="form-label">Documento de Identidad *</label>
+                    <input type="text" class="form-input" name="documento_identidad" required>
+                </div>
+                <div class="form-group">
+                    <label for="email" class="form-label">Email</label>
+                    <input type="email" class="form-input" name="email">
+                </div>
+                <div class="form-group">
+                    <label for="telefono" class="form-label">Teléfono</label>
+                    <input type="tel" class="form-input" name="telefono">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-close="modalNuevoPropietario">
+                    Cancelar
+                </button>
+                <button type="submit" class="btn btn-primary">
+                    💾 Guardar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Editar Propietario -->
+<div class="modal-overlay" id="modalEditarPropietario">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title">
+                ✏️ Editar Propietario
+            </h2>
+            <button class="modal-close" data-close="modalEditarPropietario">&times;</button>
+        </div>
+        <form method="post" id="formEditarPropietario">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="edit_nombre_completo" class="form-label">Nombre Completo *</label>
+                    <input type="text" class="form-input" name="nombre_completo" id="edit_nombre_completo" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit_documento_identidad" class="form-label">Documento de Identidad *</label>
+                    <input type="text" class="form-input" name="documento_identidad" id="edit_documento_identidad" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit_email" class="form-label">Email</label>
+                    <input type="email" class="form-input" name="email" id="edit_email">
+                </div>
+                <div class="form-group">
+                    <label for="edit_telefono" class="form-label">Teléfono</label>
+                    <input type="tel" class="form-input" name="telefono" id="edit_telefono">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-close="modalEditarPropietario">
+                    Cancelar
+                </button>
+                <button type="submit" class="btn btn-primary">
+                    💾 Actualizar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Modal functions
+function showModal(modalId) {
+    document.getElementById(modalId).classList.add('show');
+    document.body.style.overflow = 'hidden';
+}
+
+function hideModal(modalId) {
+    document.getElementById(modalId).classList.remove('show');
+    document.body.style.overflow = 'auto';
+}
+
+// Initialize event listeners when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Modal open buttons
+    document.querySelectorAll('[data-modal]').forEach(button => {
+        button.addEventListener('click', function() {
+            const modalId = this.getAttribute('data-modal');
+            showModal(modalId);
+        });
+    });
+
+    // Modal close buttons
+    document.querySelectorAll('[data-close]').forEach(button => {
+        button.addEventListener('click', function() {
+            const modalId = this.getAttribute('data-close');
+            hideModal(modalId);
+        });
+    });
+
+    // Alert close buttons
+    document.querySelectorAll('[data-close-alert]').forEach(button => {
+        button.addEventListener('click', function() {
+            this.parentElement.style.display = 'none';
+        });
+    });
+
+    // Edit buttons
+    document.querySelectorAll('.action-btn.edit').forEach(button => {
+        button.addEventListener('click', function() {
+            const id = this.getAttribute('data-id');
+            const nombre = this.getAttribute('data-nombre');
+            const documento = this.getAttribute('data-documento');
+            const email = this.getAttribute('data-email');
+            const telefono = this.getAttribute('data-telefono');
+            
+            editarPropietario(id, nombre, documento, email, telefono);
+        });
+    });
+
+    // Delete buttons
+    document.querySelectorAll('.action-btn.delete').forEach(button => {
+        button.addEventListener('click', function() {
+            const id = this.getAttribute('data-id');
+            const nombre = this.getAttribute('data-nombre');
+            
+            eliminarPropietario(id, nombre);
+        });
+    });
+});
+
+// Close modal when clicking outside
+document.addEventListener('click', function(event) {
+    if (event.target.classList.contains('modal-overlay')) {
+        hideModal(event.target.id);
+    }
+});
+
+// Close modal with Escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        const modals = document.querySelectorAll('.modal-overlay.show');
+        modals.forEach(modal => {
+            hideModal(modal.id);
+        });
+    }
+});
+
+function editarPropietario(id, nombre, documento, email, telefono) {
+    document.getElementById('edit_nombre_completo').value = nombre;
+    document.getElementById('edit_documento_identidad').value = documento;
+    document.getElementById('edit_email').value = email || '';
+    document.getElementById('edit_telefono').value = telefono || '';
+    document.getElementById('formEditarPropietario').action = `/admin/propietarios/${id}/editar`;
+    
+    showModal('modalEditarPropietario');
+}
+
+function eliminarPropietario(id, nombre) {
+    if (confirm(`¿Está seguro de eliminar al propietario "${nombre}"?\n\nEsta acción no se puede deshacer.`)) {
+        const form = document.createElement('form');
+        form.method = 'post';
+        form.action = `/admin/propietarios/${id}/eliminar`;
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+</script>
+{% endblock %}

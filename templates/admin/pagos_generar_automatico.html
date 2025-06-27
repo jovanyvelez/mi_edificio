@@ -1,0 +1,627 @@
+{% extends "base.html" %}
+
+{% block title %}Generación Automática V3 - Cuotas + Intereses{% endblock %}
+
+{% block header %}🪄 Generación Automática V3{% endblock %}
+
+{% block head %}
+<style>
+    .generacion-container {
+        display: grid;
+        gap: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .generacion-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2.5rem;
+        border-radius: 20px;
+        box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 1rem;
+    }
+    
+    .generacion-header h1 {
+        margin: 0 0 0.5rem 0;
+        font-size: 2.5rem;
+        font-weight: 300;
+        text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+    
+    .nav-buttons {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: 1.5rem;
+    }
+    
+    .nav-btn {
+        background: rgba(255,255,255,0.2);
+        color: white;
+        border: 1px solid rgba(255,255,255,0.3);
+        padding: 0.8rem 1.5rem;
+        border-radius: 25px;
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .nav-btn:hover {
+        background: rgba(255,255,255,0.3);
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+    
+    .success-alert {
+        background: linear-gradient(135deg, #2ecc71, #27ae60);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 15px;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 5px 15px rgba(46, 204, 113, 0.3);
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .info-alert {
+        background: linear-gradient(135deg, #3498db, #2980b9);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 15px;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .error-alert {
+        background: linear-gradient(135deg, #e74c3c, #c0392b);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 15px;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .main-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 2rem;
+    }
+    
+    .form-card {
+        background: rgba(255,255,255,0.95);
+        backdrop-filter: blur(20px);
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        border: 1px solid rgba(255,255,255,0.2);
+    }
+    
+    .card-header {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 15px;
+        margin-bottom: 1.5rem;
+        text-align: center;
+    }
+    
+    .card-title {
+        font-size: 1.3rem;
+        font-weight: 600;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+    
+    .info-box {
+        background: #e8f4fd;
+        border: 1px solid #bee5eb;
+        color: #0c5460;
+        padding: 1.5rem;
+        border-radius: 15px;
+        margin-bottom: 1.5rem;
+    }
+    
+    .info-box h6 {
+        margin: 0 0 0.5rem 0;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .info-box ul {
+        margin: 0.5rem 0 0 1.5rem;
+        padding: 0;
+    }
+    
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-group {
+        margin-bottom: 1rem;
+    }
+    
+    .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: #2d3748;
+    }
+    
+    .form-select {
+        width: 100%;
+        padding: 0.8rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        font-size: 1rem;
+        background: white;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .form-select:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .checkbox-group {
+        background: #f8fafc;
+        padding: 1rem;
+        border-radius: 10px;
+        border: 2px solid #e2e8f0;
+        margin-bottom: 1rem;
+    }
+    
+    .checkbox-item {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .checkbox-item:last-child {
+        margin-bottom: 0;
+    }
+    
+    .checkbox-input {
+        width: 18px;
+        height: 18px;
+        accent-color: #667eea;
+    }
+    
+    .checkbox-label {
+        font-weight: 500;
+        color: #2d3748;
+        cursor: pointer;
+    }
+    
+    .submit-btn {
+        background: linear-gradient(135deg, #2ecc71, #27ae60);
+        color: white;
+        border: none;
+        padding: 1rem 2rem;
+        border-radius: 25px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        width: 100%;
+    }
+    
+    .submit-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(46, 204, 113, 0.4);
+    }
+    
+    .submit-btn:disabled {
+        background: #95a5a6;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+    
+    .sidebar-card {
+        background: rgba(255,255,255,0.95);
+        backdrop-filter: blur(20px);
+        border-radius: 20px;
+        padding: 1.5rem;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        border: 1px solid rgba(255,255,255,0.2);
+        height: fit-content;
+    }
+    
+    .status-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.8rem;
+        margin-bottom: 0.5rem;
+        background: #f8fafc;
+        border-radius: 10px;
+        border-left: 4px solid #667eea;
+    }
+    
+    .status-label {
+        font-weight: 500;
+        color: #2d3748;
+    }
+    
+    .status-value {
+        font-weight: 600;
+        color: #667eea;
+    }
+    
+    .warning-box {
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        color: #664d03;
+        padding: 1rem;
+        border-radius: 10px;
+        margin: 1rem 0;
+    }
+    
+    .warning-box h6 {
+        margin: 0 0 0.5rem 0;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    @media (max-width: 768px) {
+        .main-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .nav-buttons {
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .form-card, .sidebar-card {
+            padding: 1rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="generacion-container">
+    <div class="generacion-header">
+        <h1>🪄 Generación Automática V3</h1>
+        <p style="opacity: 0.9; font-size: 1.1rem; margin: 0.5rem 0;">
+            Cuotas Ordinarias + Intereses Moratorios
+        </p>
+        
+        <div class="nav-buttons">
+            <a href="/admin/pagos" class="nav-btn">
+                ← Volver a Pagos
+            </a>
+            <a href="/admin/pagos/generar-cargos" class="nav-btn">
+                📝 Generación Básica
+            </a>
+        </div>
+    </div>
+
+    <!-- Alertas -->
+    {% if request.query_params.get('success') %}
+    <div class="success-alert">
+        <span style="font-size: 1.5rem;">✅</span>
+        <div>
+            <strong>¡Generación completada exitosamente!</strong>
+            {% if request.query_params.get('mes') and request.query_params.get('año') %}
+            <br>Período: {{ ["", "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"][request.query_params.get('mes')|int] }} {{ request.query_params.get('año') }}
+            {% endif %}
+            {% if request.query_params.get('cuotas') %}
+            <br><strong>Cuotas ordinarias:</strong> {{ request.query_params.get('cuotas') }} generadas por ${{ "{:,.2f}".format(request.query_params.get('monto_cuotas')|float) }}
+            {% endif %}
+            {% if request.query_params.get('intereses') %}
+            <br><strong>Intereses moratorios:</strong> {{ request.query_params.get('intereses') }} generados por ${{ "{:,.2f}".format(request.query_params.get('monto_intereses')|float) }}
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if request.query_params.get('info') == 'already_processed' %}
+    <div class="info-alert">
+        <span style="font-size: 1.5rem;">ℹ️</span>
+        <div>
+            El período {{ ["", "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"][request.query_params.get('mes')|int] }} {{ request.query_params.get('año') }} ya fue procesado anteriormente.
+            <br>Use la opción "Forzar reprocesamiento" si necesita regenerar los cargos.
+        </div>
+    </div>
+    {% endif %}
+
+    {% if request.query_params.get('error') %}
+    <div class="error-alert">
+        <span style="font-size: 1.5rem;">⚠️</span>
+        <div>
+            <strong>Error durante el procesamiento</strong>
+            {% if request.query_params.get('details') %}
+            <br>{{ request.query_params.get('details') }}
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="main-grid">
+        <!-- Formulario Principal -->
+        <div class="form-card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    🪄 Procesamiento Automático V3
+                </h2>
+            </div>
+            
+            <div class="info-box">
+                <h6>ℹ️ Sistema Integrado V3</h6>
+                <p style="margin: 0 0 0.5rem 0;">Este sistema genera automáticamente:</p>
+                <ul style="margin: 0;">
+                    <li><strong>Cuotas ordinarias</strong> basadas en la configuración por apartamento</li>
+                    <li><strong>Intereses moratorios</strong> calculados automáticamente sobre saldos pendientes</li>
+                    <li><strong>Control de duplicados</strong> para evitar reprocesos accidentales</li>
+                    <li><strong>Auditoría completa</strong> del procesamiento realizado</li>
+                </ul>
+            </div>
+
+            <form method="post" action="/admin/pagos/generar-automatico" id="formGenerarAutomatico">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="año" class="form-label">Año *</label>
+                        <select class="form-select" name="año" id="año" required>
+                            {% for i in range(año_actual - 2, año_actual + 3) %}
+                            <option value="{{ i }}" {% if i == año_actual %}selected{% endif %}>{{ i }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="mes" class="form-label">Mes *</label>
+                        <select class="form-select" name="mes" id="mes" required>
+                            {% for i in range(1, 13) %}
+                            <option value="{{ i }}" {% if i == mes_actual %}selected{% endif %}>
+                                {{ ["", "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"][i] }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="checkbox-group">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="forzar" name="forzar" class="checkbox-input" value="true">
+                        <label for="forzar" class="checkbox-label">Forzar reprocesamiento</label>
+                    </div>
+                </div>
+
+                <div class="warning-box">
+                    <h6>⚠️ Importante</h6>
+                    <ul style="margin: 0.5rem 0 0 1.5rem;">
+                        <li>Esta operación generará cargos en el sistema contable</li>
+                        <li>Si marca "Forzar reprocesamiento", se borrarán los cargos existentes del período</li>
+                        <li>Los intereses se calcularán automáticamente sobre saldos vencidos</li>
+                        <li>Asegúrese de que la configuración de cuotas esté actualizada</li>
+                    </ul>
+                </div>
+
+                <button type="submit" class="submit-btn" id="btnGenerar">
+                    <span id="btnText">🪄 Ejecutar Generación Automática V3</span>
+                    <span id="btnLoader" style="display: none;">⏳ Procesando...</span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Barra Lateral -->
+        <div class="sidebar-card">
+            <h3 style="margin: 0 0 1rem 0; font-size: 1.2rem; color: #2d3748;">📊 Estado Actual</h3>
+            
+            <div class="status-item">
+                <span class="status-label">Mes Actual</span>
+                <span class="status-value">{{ ["", "Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"][mes_actual] }} {{ año_actual }}</span>
+            </div>
+            
+            <div class="status-item">
+                <span class="status-label">Total Apartamentos</span>
+                <span class="status-value">{{ total_apartamentos or 0 }}</span>
+            </div>
+            
+            <div class="status-item">
+                <span class="status-label">Configuraciones</span>
+                <span class="status-value">{{ configuraciones_activas or 0 }}</span>
+            </div>
+            
+            <div class="status-item">
+                <span class="status-label">Último Proceso</span>
+                <span class="status-value">
+                    {% if ultimo_proceso %}
+                        {{ ultimo_proceso.strftime('%d/%m/%Y') }}
+                    {% else %}
+                        Ninguno
+                    {% endif %}
+                </span>
+            </div>
+            
+            <hr style="margin: 1.5rem 0; border: none; border-top: 1px solid #e2e8f0;">
+            
+            <h4 style="margin: 0 0 1rem 0; font-size: 1rem; color: #2d3748;">🔧 Herramientas</h4>
+            
+            <a href="/admin/pagos/configuracion" style="display: block; padding: 0.8rem; background: #f8fafc; border-radius: 10px; text-decoration: none; color: #2d3748; margin-bottom: 0.5rem; transition: all 0.3s ease;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f8fafc'">
+                ⚙️ Configurar Cuotas
+            </a>
+            
+            <a href="/admin/pagos/reportes" style="display: block; padding: 0.8rem; background: #f8fafc; border-radius: 10px; text-decoration: none; color: #2d3748; margin-bottom: 0.5rem; transition: all 0.3s ease;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f8fafc'">
+                📊 Ver Reportes
+            </a>
+            
+            <a href="/admin/pagos/procesar" style="display: block; padding: 0.8rem; background: #f8fafc; border-radius: 10px; text-decoration: none; color: #2d3748; transition: all 0.3s ease;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f8fafc'">
+                💳 Procesar Pagos
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+// Manejo del formulario
+document.getElementById('formGenerarAutomatico').addEventListener('submit', function(e) {
+    const btnGenerar = document.getElementById('btnGenerar');
+    const btnText = document.getElementById('btnText');
+    const btnLoader = document.getElementById('btnLoader');
+    const forzar = document.getElementById('forzar').checked;
+    const mes = document.getElementById('mes').value;
+    const año = document.getElementById('año').value;
+    
+    const mesNombre = document.querySelector('#mes option:checked').textContent;
+    
+    let mensaje = `¿Confirma ejecutar la generación automática V3 para ${mesNombre} ${año}?`;
+    
+    if (forzar) {
+        mensaje += '\n\n⚠️ ATENCIÓN: Ha marcado "Forzar reprocesamiento".\nEsto eliminará los cargos existentes del período y los regenerará.';
+    }
+    
+    if (!confirm(mensaje)) {
+        e.preventDefault();
+        return false;
+    }
+    
+    // Deshabilitar botón y mostrar loader
+    btnGenerar.disabled = true;
+    btnText.style.display = 'none';
+    btnLoader.style.display = 'flex';
+    btnLoader.style.alignItems = 'center';
+    btnLoader.style.gap = '0.5rem';
+    
+    // Si hay algún error, rehabilitar el botón después de un tiempo
+    setTimeout(() => {
+        if (btnGenerar.disabled) {
+            btnGenerar.disabled = false;
+            btnText.style.display = 'flex';
+            btnLoader.style.display = 'none';
+        }
+    }, 30000); // 30 segundos timeout
+});
+
+// Actualizar información del período seleccionado
+function actualizarInfo() {
+    const mes = document.getElementById('mes').value;
+    const año = document.getElementById('año').value;
+    const mesNombre = document.querySelector('#mes option:checked').textContent;
+    
+    console.log(`Período seleccionado: ${mesNombre} ${año}`);
+}
+
+document.getElementById('mes').addEventListener('change', actualizarInfo);
+document.getElementById('año').addEventListener('change', actualizarInfo);
+
+// Confirmación especial para forzar reprocesamiento
+document.getElementById('forzar').addEventListener('change', function() {
+    if (this.checked) {
+        if (!confirm('⚠️ ADVERTENCIA: Forzar reprocesamiento eliminará todos los cargos existentes del período seleccionado y los regenerará.\n\n¿Está seguro de que desea activar esta opción?')) {
+            this.checked = false;
+        }
+    }
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    if (e.ctrlKey || e.metaKey) {
+        switch(e.key) {
+            case 'Enter':
+                e.preventDefault();
+                document.getElementById('formGenerarAutomatico').submit();
+                break;
+        }
+    }
+});
+
+// Mostrar ayuda
+document.addEventListener('DOMContentLoaded', function() {
+    const helpBtn = document.createElement('div');
+    helpBtn.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: #667eea;
+        color: white;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        font-size: 1.2rem;
+        transition: all 0.3s ease;
+        z-index: 1000;
+    `;
+    helpBtn.innerHTML = '?';
+    helpBtn.title = 'Ayuda';
+    
+    helpBtn.addEventListener('click', function() {
+        alert(`🪄 Generación Automática V3 - Ayuda
+
+📋 FUNCIONALIDADES:
+• Genera cuotas ordinarias basadas en configuración
+• Calcula intereses moratorios automáticamente  
+• Control de duplicados por período
+• Auditoría completa del proceso
+
+⚠️ IMPORTANTE:
+• Asegúrese de configurar las cuotas antes de generar
+• Use "Forzar reprocesamiento" solo si es necesario
+• Los intereses se calculan sobre saldos vencidos
+
+⌨️ ATAJOS:
+• Ctrl+Enter: Ejecutar generación
+
+🔧 HERRAMIENTAS:
+• Configuración de cuotas por apartamento
+• Reportes detallados de recaudación
+• Procesamiento de pagos manuales`);
+    });
+    
+    helpBtn.addEventListener('mouseenter', function() {
+        this.style.transform = 'scale(1.1)';
+        this.style.boxShadow = '0 8px 25px rgba(102, 126, 234, 0.6)';
+    });
+    
+    helpBtn.addEventListener('mouseleave', function() {
+        this.style.transform = 'scale(1)';
+        this.style.boxShadow = '0 5px 15px rgba(102, 126, 234, 0.4)';
+    });
+    
+    document.body.appendChild(helpBtn);
+});
+</script>
+{% endblock %}

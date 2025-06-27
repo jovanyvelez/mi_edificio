@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Iniciar Sesión{% endblock %}
+
+{% block header %}Sistema de Administración - Login{% endblock %}
+
+{% block content %}
+<div style="max-width:400px;margin:2rem auto;">
+    <h2 style="text-align:center;margin-bottom:2rem;">Iniciar Sesión</h2>
+    
+    {% if error %}
+        <div style="background:#f8d7da;color:#721c24;padding:1rem;border-radius:4px;margin-bottom:1rem;border:1px solid #f5c6cb;">
+            {{ error }}
+        </div>
+    {% endif %}
+    
+    <form method="post" action="/login" style="background:#fff;padding:2rem;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+        <div style="margin-bottom:1.5rem;">
+            <label for="email" style="display:block;margin-bottom:0.5rem;font-weight:500;">Email</label>
+            <input type="email" id="email" name="email" required
+                   style="width:100%;padding:0.8rem;border:1px solid #ccc;border-radius:4px;font-size:1rem;">
+        </div>
+        
+        <div style="margin-bottom:1.5rem;">
+            <label for="password" style="display:block;margin-bottom:0.5rem;font-weight:500;">Contraseña</label>
+            <input type="password" id="password" name="password" required
+                   style="width:100%;padding:0.8rem;border:1px solid #ccc;border-radius:4px;font-size:1rem;">
+        </div>
+        
+        <button type="submit" class="btn" style="width:100%;padding:0.8rem;font-size:1rem;">
+            Iniciar Sesión
+        </button>
+    </form>
+    
+    <div style="text-align:center;margin-top:1rem;color:#666;font-size:0.9rem;">
+        <p>Usuarios de prueba: cualquier email de la BD con contraseña: <strong>secreto</strong></p>
+    </div>
+</div>
+{% endblock %}
