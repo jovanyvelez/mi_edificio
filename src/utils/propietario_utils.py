@@ -124,7 +124,7 @@ async def get_estado_cuenta_completo(propietario_id: int) -> Dict[str, Any]:
                 select(rfa, Concepto)
                 .join(Concepto, rfa.concepto_id == Concepto.id)
                 .where(rfa.apartamento_id == apartamento.id)
-                .order_by(rfa.fecha_efectiva.desc())
+                .order_by(rfa.año_aplicable.desc(), rfa.mes_aplicable.desc())
                 .limit(5)
             ).all()
             

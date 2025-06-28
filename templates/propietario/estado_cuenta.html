@@ -185,33 +185,96 @@
         display: block;
     }
     
-    /* Tabla de movimientos */
-    .movimientos-table {
-        width: 100%;
-        border-collapse: collapse;
+    /* Cards de movimientos */
+    .movimientos-grid {
+        display: grid;
+        gap: 1rem;
     }
     
-    .movimientos-table th,
-    .movimientos-table td {
-        padding: 1rem;
-        text-align: left;
-        border-bottom: 1px solid #e5e7eb;
-    }
-    
-    .movimientos-table th {
+    .movimiento-card {
         background: #f8fafc;
-        font-weight: 600;
+        border-radius: 12px;
+        padding: 1.5rem;
+        border: 1px solid #e5e7eb;
+        transition: all 0.3s ease;
+    }
+    
+    .movimiento-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        border-color: #d1d5db;
+    }
+    
+    .movimiento-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    .movimiento-fecha {
+        background: #e5e7eb;
+        padding: 0.25rem 0.75rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 500;
         color: #374151;
     }
     
-    .tipo-debito {
-        color: #ef4444;
+    .movimiento-tipo {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
         font-weight: 600;
     }
     
-    .tipo-credito {
+    .movimiento-tipo.debito {
+        background: #fef2f2;
+        color: #ef4444;
+        border: 1px solid #fecaca;
+    }
+    
+    .movimiento-tipo.credito {
+        background: #f0fdf4;
         color: #10b981;
+        border: 1px solid #bbf7d0;
+    }
+    
+    .movimiento-concepto {
+        font-size: 1.1rem;
         font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 0.5rem;
+    }
+    
+    .movimiento-monto {
+        font-size: 1.3rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+    
+    .movimiento-monto.debito {
+        color: #ef4444;
+    }
+    
+    .movimiento-monto.credito {
+        color: #10b981;
+    }
+    
+    .movimiento-referencia {
+        font-size: 0.9rem;
+        color: #6b7280;
+        font-style: italic;
+    }
+    
+    .movimiento-referencia strong {
+        color: #374151;
+        font-style: normal;
     }
     
     /* Saldos históricos */
@@ -295,22 +358,96 @@
     
     /* Responsive */
     @media (max-width: 768px) {
-        .apartamento-header {
+        .estado-cuenta-container {
+            padding: 0.5rem;
+        }
+        
+        .header-section {
+            padding: 1.5rem;
             flex-direction: column;
             text-align: center;
+        }
+        
+        .resumen-general {
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        
+        .resumen-card {
+            padding: 1.5rem;
+        }
+        
+        .resumen-numero {
+            font-size: 2rem;
+        }
+        
+        .apartamento-header {
+            padding: 1rem 1.5rem;
+            flex-direction: column;
+            text-align: center;
+        }
+        
+        .apartamento-titulo {
+            font-size: 1.1rem;
         }
         
         .tabs {
             flex-direction: column;
         }
         
-        .movimientos-table {
+        .tab {
+            padding: 0.75rem;
             font-size: 0.9rem;
         }
         
-        .movimientos-table th,
-        .movimientos-table td {
-            padding: 0.5rem;
+        .tab-content {
+            padding: 1rem;
+        }
+        
+        .movimiento-card {
+            padding: 1rem;
+        }
+        
+        .movimiento-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+        
+        .movimiento-concepto {
+            font-size: 1rem;
+        }
+        
+        .movimiento-monto {
+            font-size: 1.2rem;
+        }
+        
+        .saldos-historicos {
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        }
+        
+        .saldo-mes {
+            padding: 1rem;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .resumen-general {
+            grid-template-columns: 1fr;
+        }
+        
+        .movimiento-header {
+            gap: 0.5rem;
+        }
+        
+        .movimiento-fecha,
+        .movimiento-tipo {
+            font-size: 0.8rem;
+            padding: 0.2rem 0.5rem;
+        }
+        
+        .saldos-historicos {
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
         }
     }
 </style>
@@ -411,44 +548,42 @@
                         <!-- Tab de movimientos -->
                         <div id="movimientos-{{ apartamento_data.apartamento.id }}" class="tab-panel active">
                             {% if apartamento_data.ultimos_movimientos %}
-                            <table class="movimientos-table">
-                                <thead>
-                                    <tr>
-                                        <th>Fecha</th>
-                                        <th>Concepto</th>
-                                        <th>Tipo</th>
-                                        <th>Monto</th>
-                                        <th>Referencia</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for movimiento in apartamento_data.ultimos_movimientos %}
-                                    <tr>
-                                        <td>{{ movimiento.registro.fecha_efectiva.strftime('%d/%m/%Y') }}</td>
-                                        <td>{{ movimiento.concepto.nombre }}</td>
-                                        <td>
-                                            <span class="{% if movimiento.registro.tipo_movimiento == 'DEBITO' %}tipo-debito{% else %}tipo-credito{% endif %}">
-                                                {% if movimiento.registro.tipo_movimiento == 'DEBITO' %}
-                                                    📤 Cargo
-                                                {% else %}
-                                                    📥 Pago
-                                                {% endif %}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <span class="{% if movimiento.registro.tipo_movimiento == 'DEBITO' %}tipo-debito{% else %}tipo-credito{% endif %}">
-                                                {% if movimiento.registro.tipo_movimiento == 'DEBITO' %}
-                                                    -${{ "{:,.0f}".format(movimiento.registro.monto) }}
-                                                {% else %}
-                                                    +${{ "{:,.0f}".format(movimiento.registro.monto) }}
-                                                {% endif %}
-                                            </span>
-                                        </td>
-                                        <td>{{ movimiento.registro.referencia_pago or '-' }}</td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
+                            <div class="movimientos-grid">
+                                {% for movimiento in apartamento_data.ultimos_movimientos %}
+                                <div class="movimiento-card">
+                                    <div class="movimiento-header">
+                                        <div class="movimiento-fecha">
+                                            📅 {{ movimiento.registro.año_aplicable }} - {{ movimiento.registro.mes_aplicable }}
+                                        </div>
+                                        <div class="movimiento-tipo {% if movimiento.registro.tipo_movimiento == 'DEBITO' %}debito{% else %}credito{% endif %}">
+                                            {% if movimiento.registro.tipo_movimiento == 'DEBITO' %}
+                                                📤 Cargo
+                                            {% else %}
+                                                📥 Pago
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="movimiento-concepto">
+                                        {{ movimiento.concepto.nombre }}
+                                    </div>
+                                    
+                                    <div class="movimiento-monto {% if movimiento.registro.tipo_movimiento == 'DEBITO' %}debito{% else %}credito{% endif %}">
+                                        {% if movimiento.registro.tipo_movimiento == 'DEBITO' %}
+                                            -${{ "{:,.0f}".format(movimiento.registro.monto) }}
+                                        {% else %}
+                                            +${{ "{:,.0f}".format(movimiento.registro.monto) }}
+                                        {% endif %}
+                                    </div>
+                                    
+                                    {% if movimiento.registro.referencia_pago %}
+                                    <div class="movimiento-referencia">
+                                        <strong>Referencia:</strong> {{ movimiento.registro.referencia_pago }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
                             {% else %}
                             <div class="no-data">
                                 <div class="no-data-icon">📄</div>
