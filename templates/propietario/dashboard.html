@@ -1,0 +1,467 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Propietario{% endblock %}
+
+{% block header %}🏠 Portal del Propietario{% endblock %}
+
+{% block head %}
+<style>
+    .propietario-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 1rem;
+    }
+    
+    /* Header del propietario */
+    .propietario-header {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        padding: 2.5rem;
+        border-radius: 20px;
+        box-shadow: 0 10px 40px rgba(16, 185, 129, 0.3);
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    
+    .propietario-header h1 {
+        font-size: 2rem;
+        font-weight: 300;
+        margin: 0 0 0.5rem 0;
+    }
+    
+    .propietario-subtitle {
+        font-size: 1.1rem;
+        opacity: 0.9;
+        margin: 0;
+    }
+    
+    /* Grid de estadísticas */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    
+    .stat-card.success {
+        border-left: 4px solid #10b981;
+    }
+    
+    .stat-card.warning {
+        border-left: 4px solid #f59e0b;
+    }
+    
+    .stat-card.danger {
+        border-left: 4px solid #ef4444;
+    }
+    
+    .stat-card.info {
+        border-left: 4px solid #3b82f6;
+    }
+    
+    .stat-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .stat-number {
+        font-size: 2rem;
+        font-weight: 700;
+        margin: 0;
+        color: #1f2937;
+    }
+    
+    .stat-label {
+        font-size: 0.9rem;
+        color: #6b7280;
+        margin: 0.5rem 0 0 0;
+        font-weight: 500;
+    }
+    
+    .stat-icon {
+        font-size: 2.5rem;
+        opacity: 0.7;
+    }
+    
+    /* Grid principal */
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        margin-top: 2rem;
+    }
+    
+    @media (max-width: 768px) {
+        .dashboard-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    /* Panel de acciones rápidas */
+    .quick-actions {
+        background: white;
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.06);
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .quick-actions h3 {
+        margin: 0 0 1.5rem 0;
+        color: #2c3e50;
+        font-size: 1.3rem;
+        font-weight: 600;
+    }
+    
+    .actions-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+    
+    .action-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem;
+        background: #f8fafc;
+        border: 2px solid #e2e8f0;
+        border-radius: 16px;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        min-height: 120px;
+        gap: 0.5rem;
+    }
+    
+    .action-btn:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
+        border-color: #10b981;
+        background: #ecfdf5;
+    }
+    
+    .action-icon {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .action-label {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #374151;
+        text-align: center;
+        line-height: 1.3;
+    }
+    
+    .action-btn.primary {
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        color: white;
+        border: none;
+    }
+    
+    .action-btn.success {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        border: none;
+    }
+    
+    .action-btn.secondary {
+        background: linear-gradient(135deg, #6b7280, #4b5563);
+        color: white;
+        border: none;
+    }
+    
+    /* Panel de resumen */
+    .resumen-panel {
+        background: white;
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.06);
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .resumen-panel h3 {
+        margin: 0 0 1.5rem 0;
+        color: #2c3e50;
+        font-size: 1.3rem;
+        font-weight: 600;
+    }
+    
+    .resumen-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 0;
+        border-bottom: 1px solid #f3f4f6;
+    }
+    
+    .resumen-item:last-child {
+        border-bottom: none;
+    }
+    
+    .resumen-label {
+        font-weight: 500;
+        color: #374151;
+    }
+    
+    .resumen-value {
+        font-weight: 700;
+        font-size: 1.1rem;
+    }
+    
+    .resumen-value.positive {
+        color: #10b981;
+    }
+    
+    .resumen-value.negative {
+        color: #ef4444;
+    }
+    
+    .resumen-value.neutral {
+        color: #6b7280;
+    }
+    
+    /* Lista de apartamentos */
+    .apartamentos-list {
+        margin-top: 1.5rem;
+    }
+    
+    .apartamento-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        background: #f8fafc;
+        border-radius: 12px;
+        margin-bottom: 1rem;
+        border: 1px solid #e2e8f0;
+        transition: all 0.3s ease;
+    }
+    
+    .apartamento-item:hover {
+        background: #ecfdf5;
+        border-color: #10b981;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    .apartamento-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .apartamento-numero {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 1.1rem;
+    }
+    
+    .apartamento-saldo {
+        font-weight: 700;
+        font-size: 1.1rem;
+    }
+    
+    .saldo-al-dia {
+        color: #10b981;
+    }
+    
+    .saldo-mora {
+        color: #ef4444;
+    }
+    
+    /* Estado del apartamento */
+    .estado-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+    
+    .estado-al-dia {
+        background: #dcfce7;
+        color: #166534;
+    }
+    
+    .estado-mora {
+        background: #fef2f2;
+        color: #991b1b;
+    }
+    
+    /* Mensaje de admin */
+    .admin-message {
+        background: #fef3c7;
+        border: 1px solid #f59e0b;
+        padding: 1rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+        text-align: center;
+        color: #92400e;
+    }
+    
+    /* No apartamentos */
+    .no-apartamentos {
+        text-align: center;
+        padding: 3rem;
+        color: #6b7280;
+    }
+    
+    .no-apartamentos-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="propietario-container">
+    {% if es_admin and not propietario %}
+    <div class="admin-message">
+        <strong>👨‍💼 Modo Administrador:</strong> {{ mensaje }}
+    </div>
+    {% endif %}
+
+    <!-- Header del propietario -->
+    <div class="propietario-header">
+        {% if propietario %}
+        <h1>Bienvenido, {{ propietario.nombre_completo }}</h1>
+        <p class="propietario-subtitle">Panel de control de sus propiedades</p>
+        {% else %}
+        <h1>Portal del Propietario</h1>
+        <p class="propietario-subtitle">Sistema de gestión de propiedades</p>
+        {% endif %}
+    </div>
+
+    {% if propietario and estado_cuenta %}
+    <!-- Estadísticas principales -->
+    <div class="stats-grid">
+        <div class="stat-card info">
+            <div class="stat-header">
+                <div>
+                    <p class="stat-number">{{ estado_cuenta.resumen.total_apartamentos }}</p>
+                    <p class="stat-label">Apartamentos</p>
+                </div>
+                <div class="stat-icon">🏠</div>
+            </div>
+        </div>
+        
+        <div class="stat-card {% if estado_cuenta.resumen.saldo_total <= 0 %}success{% else %}danger{% endif %}">
+            <div class="stat-header">
+                <div>
+                    <p class="stat-number">${{ "{:,.0f}".format(estado_cuenta.resumen.saldo_total | abs) }}</p>
+                    <p class="stat-label">
+                        {% if estado_cuenta.resumen.saldo_total <= 0 %}
+                        Saldo a Favor
+                        {% else %}
+                        Saldo Pendiente
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="stat-icon">
+                    {% if estado_cuenta.resumen.saldo_total <= 0 %}
+                    ✅
+                    {% else %}
+                    ⚠️
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="stat-card success">
+            <div class="stat-header">
+                <div>
+                    <p class="stat-number">{{ estado_cuenta.resumen.apartamentos_al_dia }}</p>
+                    <p class="stat-label">Al Día</p>
+                </div>
+                <div class="stat-icon">✅</div>
+            </div>
+        </div>
+        
+        <div class="stat-card warning">
+            <div class="stat-header">
+                <div>
+                    <p class="stat-number">{{ estado_cuenta.resumen.apartamentos_en_mora }}</p>
+                    <p class="stat-label">En Mora</p>
+                </div>
+                <div class="stat-icon">📋</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grid principal del dashboard -->
+    <div class="dashboard-grid">
+        <!-- Panel de accesos rápidos -->
+        <div class="quick-actions">
+            <h3>🚀 Accesos Rápidos</h3>
+            
+            <div class="actions-grid">
+                <a href="/propietario/estado-cuenta" class="action-btn primary">
+                    <span class="action-icon">💰</span>
+                    <span class="action-label">Estado de<br>Cuenta Detallado</span>
+                </a>
+                
+                <a href="/propietario/cartera-morosa" class="action-btn secondary">
+                    <span class="action-icon">📊</span>
+                    <span class="action-label">Cartera Morosa<br>del Edificio</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Panel de resumen -->
+        <div class="resumen-panel">
+            <h3>📋 Resumen de Propiedades</h3>
+            
+            {% if estado_cuenta.apartamentos %}
+            <div class="apartamentos-list">
+                {% for apartamento_data in estado_cuenta.apartamentos %}
+                <div class="apartamento-item">
+                    <div class="apartamento-info">
+                        <div class="apartamento-numero">{{ apartamento_data.apartamento.identificador }}</div>
+                        <div>
+                            <div class="apartamento-saldo {% if apartamento_data.saldo_actual <= 0 %}saldo-al-dia{% else %}saldo-mora{% endif %}">
+                                ${{ "{:,.0f}".format(apartamento_data.saldo_actual | abs) }}
+                            </div>
+                            <span class="estado-badge {% if apartamento_data.estado == 'al_dia' %}estado-al-dia{% else %}estado-mora{% endif %}">
+                                {% if apartamento_data.estado == 'al_dia' %}Al día{% else %}En mora{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    <a href="/propietario/apartamento/{{ apartamento_data.apartamento.id }}/detalle" 
+                       style="background: #10b981; color: white; padding: 0.5rem 1rem; border-radius: 8px; text-decoration: none; font-size: 0.9rem;">
+                        Ver Detalle
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="no-apartamentos">
+                <div class="no-apartamentos-icon">🏠</div>
+                <p>No hay apartamentos asignados</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% elif propietario %}
+    <!-- No hay estado de cuenta -->
+    <div class="no-apartamentos">
+        <div class="no-apartamentos-icon">🏠</div>
+        <h3>No hay apartamentos asignados</h3>
+        <p>Contacte al administrador para asignar apartamentos a su cuenta</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

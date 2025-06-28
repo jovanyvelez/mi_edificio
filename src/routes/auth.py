@@ -32,7 +32,11 @@ async def dashboard(
     if not current_user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     
-    return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
+    # Redirigir según el rol del usuario
+    if current_user.rol == RolUsuarioEnum.ADMIN:
+        return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
+    else:
+        return RedirectResponse(url="/propietario/dashboard", status_code=status.HTTP_302_FOUND)
 
 
 @router.get("/login", response_class=HTMLResponse)

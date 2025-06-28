@@ -26,8 +26,8 @@ class Usuario(SQLModel, table=True):
     fecha_creacion: datetime = Field(default_factory=datetime.now)
     fecha_actualizacion: datetime = Field(default_factory=datetime.now)
 
-    # Relaciones (importaremos los tipos en runtime para evitar imports circulares)
-    propietario: Optional["Propietario"] = Relationship(back_populates="usuarios")
+    # Relación con propietario (un usuario puede estar asociado a un propietario)
+    propietario: Optional["Propietario"] = Relationship(back_populates="usuario")
 
 
 class Propietario(SQLModel, table=True):
@@ -44,4 +44,4 @@ class Propietario(SQLModel, table=True):
     
     # Relaciones
     apartamentos: list["Apartamento"] = Relationship(back_populates="propietario")
-    usuarios: list["Usuario"] = Relationship(back_populates="propietario")
+    usuario: Optional["Usuario"] = Relationship(back_populates="propietario")

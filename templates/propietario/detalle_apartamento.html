@@ -1,0 +1,402 @@
+{% extends "base.html" %}
+
+{% block title %}Detalle Apartamento {{ apartamento.identificador }}{% endblock %}
+
+{% block header %}🏠 Apartamento {{ apartamento.identificador }}{% endblock %}
+
+{% block head %}
+<style>
+    .detalle-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 1rem;
+    }
+    
+    /* Header del apartamento */
+    .apartamento-header {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 16px;
+        margin-bottom: 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .apartamento-info h1 {
+        margin: 0 0 0.5rem 0;
+        font-size: 2rem;
+        font-weight: 600;
+    }
+    
+    .apartamento-saldo {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 1rem 2rem;
+        border-radius: 12px;
+        text-align: center;
+    }
+    
+    .saldo-monto {
+        font-size: 2rem;
+        font-weight: 700;
+        margin: 0;
+    }
+    
+    .saldo-estado {
+        font-size: 0.9rem;
+        margin: 0.25rem 0 0 0;
+        opacity: 0.9;
+    }
+    
+    /* Navegación de tabs */
+    .tabs-nav {
+        display: flex;
+        background: white;
+        border-radius: 12px 12px 0 0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+    
+    .tab-nav {
+        flex: 1;
+        padding: 1rem;
+        text-align: center;
+        background: #f8fafc;
+        border: none;
+        cursor: pointer;
+        font-weight: 500;
+        color: #6b7280;
+        transition: all 0.3s ease;
+    }
+    
+    .tab-nav.active {
+        background: white;
+        color: #10b981;
+        font-weight: 600;
+    }
+    
+    /* Contenido de tabs */
+    .tabs-content {
+        background: white;
+        border-radius: 0 0 12px 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+    
+    .tab-panel {
+        display: none;
+        padding: 2rem;
+    }
+    
+    .tab-panel.active {
+        display: block;
+    }
+    
+    /* Tabla de movimientos */
+    .movimientos-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+    }
+    
+    .movimientos-table th,
+    .movimientos-table td {
+        padding: 1rem;
+        text-align: left;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .movimientos-table th {
+        background: #f8fafc;
+        font-weight: 600;
+        color: #374151;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    .movimientos-table tbody tr:hover {
+        background: #f8fafc;
+    }
+    
+    .tipo-debito {
+        color: #ef4444;
+        font-weight: 600;
+    }
+    
+    .tipo-credito {
+        color: #10b981;
+        font-weight: 600;
+    }
+    
+    /* Saldos históricos */
+    .saldos-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+    
+    .saldo-mes-card {
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 1.5rem;
+        text-align: center;
+        border: 1px solid #e5e7eb;
+        transition: all 0.3s ease;
+    }
+    
+    .saldo-mes-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    .saldo-mes-card.positivo {
+        background: #fef2f2;
+        border-color: #fecaca;
+    }
+    
+    .saldo-mes-card.negativo {
+        background: #f0fdf4;
+        border-color: #bbf7d0;
+    }
+    
+    .mes-nombre {
+        font-size: 0.9rem;
+        color: #6b7280;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+    }
+    
+    .mes-saldo {
+        font-size: 1.3rem;
+        font-weight: 700;
+    }
+    
+    .mes-saldo.positivo {
+        color: #ef4444;
+    }
+    
+    .mes-saldo.negativo {
+        color: #10b981;
+    }
+    
+    /* Botón de regreso */
+    .btn-regreso {
+        background: linear-gradient(135deg, #6b7280, #4b5563);
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 12px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        margin-bottom: 2rem;
+    }
+    
+    .btn-regreso:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        text-decoration: none;
+        color: white;
+    }
+    
+    /* No data states */
+    .no-data {
+        text-align: center;
+        padding: 3rem;
+        color: #6b7280;
+    }
+    
+    .no-data-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .apartamento-header {
+            flex-direction: column;
+            text-align: center;
+        }
+        
+        .tabs-nav {
+            flex-direction: column;
+        }
+        
+        .movimientos-table {
+            font-size: 0.9rem;
+        }
+        
+        .movimientos-table th,
+        .movimientos-table td {
+            padding: 0.5rem;
+        }
+        
+        .saldos-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    @media (max-width: 1024px) {
+        .movimientos-table {
+            min-width: 600px;
+        }
+        
+        .tabs-content {
+            overflow-x: auto;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="detalle-container">
+    <!-- Botón de regreso -->
+    <a href="/propietario/estado-cuenta" class="btn-regreso">
+        ← Regresar al Estado de Cuenta
+    </a>
+
+    <!-- Header del apartamento -->
+    <div class="apartamento-header">
+        <div class="apartamento-info">
+            <h1>🏠 Apartamento {{ apartamento.identificador }}</h1>
+            <p>Información financiera detallada</p>
+        </div>
+        <div class="apartamento-saldo">
+            <div class="saldo-monto">
+                {% if saldo_actual <= 0 %}
+                    +${{ "{:,.0f}".format(saldo_actual | abs) }}
+                {% else %}
+                    -${{ "{:,.0f}".format(saldo_actual) }}
+                {% endif %}
+            </div>
+            <div class="saldo-estado">
+                {% if saldo_actual <= 0 %}
+                    ✅ Al día
+                {% else %}
+                    ⚠️ Saldo pendiente
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Navegación de tabs -->
+    <div class="tabs-nav">
+        <button class="tab-nav active" onclick="switchTab('movimientos')">
+            📋 Movimientos Detallados
+        </button>
+        <button class="tab-nav" onclick="switchTab('saldos')">
+            📊 Historial de Saldos
+        </button>
+    </div>
+
+    <!-- Contenido de tabs -->
+    <div class="tabs-content">
+        <!-- Tab de movimientos -->
+        <div id="movimientos" class="tab-panel active">
+            <h3>📋 Movimientos Financieros</h3>
+            
+            {% if movimientos %}
+            <table class="movimientos-table">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Concepto</th>
+                        <th>Tipo</th>
+                        <th>Monto</th>
+                        <th>Mes/Año</th>
+                        <th>Referencia</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for movimiento in movimientos %}
+                    <tr>
+                        <td>{{ movimiento.registro.fecha_efectiva.strftime('%d/%m/%Y') }}</td>
+                        <td>{{ movimiento.concepto.nombre }}</td>
+                        <td>
+                            <span class="{% if movimiento.registro.tipo_movimiento == 'DEBITO' %}tipo-debito{% else %}tipo-credito{% endif %}">
+                                {% if movimiento.registro.tipo_movimiento == 'DEBITO' %}
+                                    📤 Cargo
+                                {% else %}
+                                    📥 Pago
+                                {% endif %}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="{% if movimiento.registro.tipo_movimiento == 'DEBITO' %}tipo-debito{% else %}tipo-credito{% endif %}">
+                                {% if movimiento.registro.tipo_movimiento == 'DEBITO' %}
+                                    -${{ "{:,.0f}".format(movimiento.registro.monto) }}
+                                {% else %}
+                                    +${{ "{:,.0f}".format(movimiento.registro.monto) }}
+                                {% endif %}
+                            </span>
+                        </td>
+                        <td>{{ movimiento.registro.mes_aplicable }}/{{ movimiento.registro.año_aplicable }}</td>
+                        <td>{{ movimiento.registro.referencia_pago or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="no-data">
+                <div class="no-data-icon">📄</div>
+                <p>No hay movimientos registrados</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Tab de saldos históricos -->
+        <div id="saldos" class="tab-panel">
+            <h3>📊 Historial de Saldos por Mes</h3>
+            
+            {% if saldos %}
+            <div class="saldos-grid">
+                {% for saldo in saldos %}
+                <div class="saldo-mes-card {% if saldo.saldo_acumulado > 0 %}positivo{% else %}negativo{% endif %}">
+                    <div class="mes-nombre">{{ saldo.nombre_mes }} {{ saldo.año }}</div>
+                    <div class="mes-saldo {% if saldo.saldo_acumulado > 0 %}positivo{% else %}negativo{% endif %}">
+                        {% if saldo.saldo_acumulado > 0 %}
+                            -${{ "{:,.0f}".format(saldo.saldo_acumulado) }}
+                        {% else %}
+                            +${{ "{:,.0f}".format(saldo.saldo_acumulado | abs) }}
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="no-data">
+                <div class="no-data-icon">📊</div>
+                <p>No hay historial de saldos</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function switchTab(tabName) {
+    // Remover clase active de todos los tabs nav
+    document.querySelectorAll('.tab-nav').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // Remover clase active de todos los panels
+    document.querySelectorAll('.tab-panel').forEach(panel => {
+        panel.classList.remove('active');
+    });
+    
+    // Agregar clase active al tab clickeado
+    event.target.classList.add('active');
+    
+    // Agregar clase active al panel correspondiente
+    document.getElementById(tabName).classList.add('active');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,519 @@
+{% extends "base.html" %}
+
+{% block title %}Estado de Cuenta Detallado{% endblock %}
+
+{% block header %}💰 Estado de Cuenta Detallado{% endblock %}
+
+{% block head %}
+<style>
+    .estado-cuenta-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 1rem;
+    }
+    
+    /* Header */
+    .header-section {
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 16px;
+        margin-bottom: 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .header-info h1 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.8rem;
+        font-weight: 600;
+    }
+    
+    .header-info p {
+        margin: 0;
+        opacity: 0.9;
+    }
+    
+    .fecha-consulta {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 0.75rem 1.5rem;
+        border-radius: 12px;
+        text-align: center;
+    }
+    
+    /* Resumen general */
+    .resumen-general {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .resumen-card {
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        text-align: center;
+    }
+    
+    .resumen-card.success {
+        border-left: 4px solid #10b981;
+    }
+    
+    .resumen-card.danger {
+        border-left: 4px solid #ef4444;
+    }
+    
+    .resumen-card.info {
+        border-left: 4px solid #3b82f6;
+    }
+    
+    .resumen-numero {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+    
+    .resumen-numero.positive {
+        color: #10b981;
+    }
+    
+    .resumen-numero.negative {
+        color: #ef4444;
+    }
+    
+    .resumen-numero.neutral {
+        color: #3b82f6;
+    }
+    
+    .resumen-label {
+        font-size: 1rem;
+        color: #6b7280;
+        font-weight: 500;
+    }
+    
+    /* Apartamentos detalle */
+    .apartamentos-section {
+        margin-top: 2rem;
+    }
+    
+    .apartamento-card {
+        background: white;
+        border-radius: 16px;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+    }
+    
+    .apartamento-header {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        padding: 1.5rem 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .apartamento-titulo {
+        font-size: 1.3rem;
+        font-weight: 600;
+        margin: 0;
+    }
+    
+    .apartamento-saldo {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 0.75rem 1.5rem;
+        border-radius: 12px;
+        text-align: center;
+    }
+    
+    .saldo-monto {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0;
+    }
+    
+    .saldo-estado {
+        font-size: 0.9rem;
+        margin: 0.25rem 0 0 0;
+        opacity: 0.9;
+    }
+    
+    /* Tabs para movimientos y saldos */
+    .tabs-container {
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .tabs {
+        display: flex;
+        background: #f8fafc;
+    }
+    
+    .tab {
+        flex: 1;
+        padding: 1rem;
+        text-align: center;
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-weight: 500;
+        color: #6b7280;
+        transition: all 0.3s ease;
+    }
+    
+    .tab.active {
+        background: white;
+        color: #10b981;
+        border-bottom: 2px solid #10b981;
+    }
+    
+    .tab-content {
+        padding: 2rem;
+    }
+    
+    .tab-panel {
+        display: none;
+    }
+    
+    .tab-panel.active {
+        display: block;
+    }
+    
+    /* Tabla de movimientos */
+    .movimientos-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .movimientos-table th,
+    .movimientos-table td {
+        padding: 1rem;
+        text-align: left;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .movimientos-table th {
+        background: #f8fafc;
+        font-weight: 600;
+        color: #374151;
+    }
+    
+    .tipo-debito {
+        color: #ef4444;
+        font-weight: 600;
+    }
+    
+    .tipo-credito {
+        color: #10b981;
+        font-weight: 600;
+    }
+    
+    /* Saldos históricos */
+    .saldos-historicos {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+    
+    .saldo-mes {
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 1.5rem;
+        text-align: center;
+        border: 1px solid #e5e7eb;
+    }
+    
+    .saldo-mes.positivo {
+        background: #fef2f2;
+        border-color: #fecaca;
+    }
+    
+    .saldo-mes.negativo {
+        background: #f0fdf4;
+        border-color: #bbf7d0;
+    }
+    
+    .mes-nombre {
+        font-size: 0.9rem;
+        color: #6b7280;
+        margin-bottom: 0.5rem;
+    }
+    
+    .mes-saldo {
+        font-size: 1.2rem;
+        font-weight: 700;
+    }
+    
+    .mes-saldo.positivo {
+        color: #ef4444;
+    }
+    
+    .mes-saldo.negativo {
+        color: #10b981;
+    }
+    
+    /* Botón de regreso */
+    .btn-regreso {
+        background: linear-gradient(135deg, #6b7280, #4b5563);
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 12px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        margin-bottom: 2rem;
+    }
+    
+    .btn-regreso:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        text-decoration: none;
+        color: white;
+    }
+    
+    /* No data states */
+    .no-data {
+        text-align: center;
+        padding: 3rem;
+        color: #6b7280;
+    }
+    
+    .no-data-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .apartamento-header {
+            flex-direction: column;
+            text-align: center;
+        }
+        
+        .tabs {
+            flex-direction: column;
+        }
+        
+        .movimientos-table {
+            font-size: 0.9rem;
+        }
+        
+        .movimientos-table th,
+        .movimientos-table td {
+            padding: 0.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="estado-cuenta-container">
+    <!-- Botón de regreso -->
+    <a href="/propietario/dashboard" class="btn-regreso">
+        ← Regresar al Dashboard
+    </a>
+
+    <!-- Header -->
+    <div class="header-section">
+        <div class="header-info">
+            {% if propietario %}
+            <h1>Estado de Cuenta - {{ propietario.nombre_completo }}</h1>
+            <p>Documento: {{ propietario.documento_identidad }}</p>
+            {% else %}
+            <h1>Estado de Cuenta</h1>
+            <p>Vista como administrador</p>
+            {% endif %}
+        </div>
+        <div class="fecha-consulta">
+            <div><strong>Fecha de Consulta</strong></div>
+            <div>{{ fecha_actual }}</div>
+        </div>
+    </div>
+
+    {% if estado_cuenta.resumen %}
+    <!-- Resumen general -->
+    <div class="resumen-general">
+        <div class="resumen-card info">
+            <div class="resumen-numero neutral">{{ estado_cuenta.resumen.total_apartamentos }}</div>
+            <div class="resumen-label">Total Apartamentos</div>
+        </div>
+        
+        <div class="resumen-card {% if estado_cuenta.resumen.saldo_total <= 0 %}success{% else %}danger{% endif %}">
+            <div class="resumen-numero {% if estado_cuenta.resumen.saldo_total <= 0 %}positive{% else %}negative{% endif %}">
+                ${{ "{:,.0f}".format(estado_cuenta.resumen.saldo_total | abs) }}
+            </div>
+            <div class="resumen-label">
+                {% if estado_cuenta.resumen.saldo_total <= 0 %}
+                Saldo a Favor
+                {% else %}
+                Saldo Pendiente
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="resumen-card success">
+            <div class="resumen-numero positive">{{ estado_cuenta.resumen.apartamentos_al_dia }}</div>
+            <div class="resumen-label">Apartamentos al Día</div>
+        </div>
+        
+        <div class="resumen-card danger">
+            <div class="resumen-numero negative">{{ estado_cuenta.resumen.apartamentos_en_mora }}</div>
+            <div class="resumen-label">Apartamentos en Mora</div>
+        </div>
+    </div>
+
+    <!-- Detalle por apartamento -->
+    <div class="apartamentos-section">
+        {% if estado_cuenta.apartamentos %}
+            {% for apartamento_data in estado_cuenta.apartamentos %}
+            <div class="apartamento-card">
+                <div class="apartamento-header">
+                    <h3 class="apartamento-titulo">Apartamento {{ apartamento_data.apartamento.identificador }}</h3>
+                    <div class="apartamento-saldo">
+                        <div class="saldo-monto">
+                            {% if apartamento_data.saldo_actual <= 0 %}
+                                ${{ "{:,.0f}".format(apartamento_data.saldo_actual | abs) }}
+                            {% else %}
+                                -${{ "{:,.0f}".format(apartamento_data.saldo_actual) }}
+                            {% endif %}
+                        </div>
+                        <div class="saldo-estado">
+                            {% if apartamento_data.estado == 'al_dia' %}
+                                ✅ Al día
+                            {% else %}
+                                ⚠️ En mora
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="tabs-container">
+                    <div class="tabs">
+                        <button class="tab active" onclick="switchTab(event, 'movimientos-{{ apartamento_data.apartamento.id }}')">
+                            📋 Últimos Movimientos
+                        </button>
+                        <button class="tab" onclick="switchTab(event, 'saldos-{{ apartamento_data.apartamento.id }}')">
+                            📊 Saldos Históricos
+                        </button>
+                    </div>
+                    
+                    <div class="tab-content">
+                        <!-- Tab de movimientos -->
+                        <div id="movimientos-{{ apartamento_data.apartamento.id }}" class="tab-panel active">
+                            {% if apartamento_data.ultimos_movimientos %}
+                            <table class="movimientos-table">
+                                <thead>
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>Concepto</th>
+                                        <th>Tipo</th>
+                                        <th>Monto</th>
+                                        <th>Referencia</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for movimiento in apartamento_data.ultimos_movimientos %}
+                                    <tr>
+                                        <td>{{ movimiento.registro.fecha_efectiva.strftime('%d/%m/%Y') }}</td>
+                                        <td>{{ movimiento.concepto.nombre }}</td>
+                                        <td>
+                                            <span class="{% if movimiento.registro.tipo_movimiento == 'DEBITO' %}tipo-debito{% else %}tipo-credito{% endif %}">
+                                                {% if movimiento.registro.tipo_movimiento == 'DEBITO' %}
+                                                    📤 Cargo
+                                                {% else %}
+                                                    📥 Pago
+                                                {% endif %}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="{% if movimiento.registro.tipo_movimiento == 'DEBITO' %}tipo-debito{% else %}tipo-credito{% endif %}">
+                                                {% if movimiento.registro.tipo_movimiento == 'DEBITO' %}
+                                                    -${{ "{:,.0f}".format(movimiento.registro.monto) }}
+                                                {% else %}
+                                                    +${{ "{:,.0f}".format(movimiento.registro.monto) }}
+                                                {% endif %}
+                                            </span>
+                                        </td>
+                                        <td>{{ movimiento.registro.referencia_pago or '-' }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                            {% else %}
+                            <div class="no-data">
+                                <div class="no-data-icon">📄</div>
+                                <p>No hay movimientos registrados</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Tab de saldos -->
+                        <div id="saldos-{{ apartamento_data.apartamento.id }}" class="tab-panel">
+                            {% if apartamento_data.saldos_historicos %}
+                            <div class="saldos-historicos">
+                                {% for saldo in apartamento_data.saldos_historicos %}
+                                <div class="saldo-mes {% if saldo.saldo_acumulado > 0 %}positivo{% else %}negativo{% endif %}">
+                                    <div class="mes-nombre">{{ saldo.nombre_mes }} {{ saldo.año }}</div>
+                                    <div class="mes-saldo {% if saldo.saldo_acumulado > 0 %}positivo{% else %}negativo{% endif %}">
+                                        {% if saldo.saldo_acumulado > 0 %}
+                                            -${{ "{:,.0f}".format(saldo.saldo_acumulado) }}
+                                        {% else %}
+                                            +${{ "{:,.0f}".format(saldo.saldo_acumulado | abs) }}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <div class="no-data">
+                                <div class="no-data-icon">📊</div>
+                                <p>No hay historial de saldos</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+        <div class="no-data">
+            <div class="no-data-icon">🏠</div>
+            <h3>No hay apartamentos asignados</h3>
+            <p>Contacte al administrador para asignar apartamentos a su cuenta</p>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function switchTab(event, tabId) {
+    // Obtener el contenedor de tabs padre
+    const tabsContainer = event.target.closest('.tabs-container');
+    
+    // Remover clase active de todos los tabs
+    const tabs = tabsContainer.querySelectorAll('.tab');
+    tabs.forEach(tab => tab.classList.remove('active'));
+    
+    // Remover clase active de todos los panels
+    const panels = tabsContainer.querySelectorAll('.tab-panel');
+    panels.forEach(panel => panel.classList.remove('active'));
+    
+    // Agregar clase active al tab clickeado
+    event.target.classList.add('active');
+    
+    // Agregar clase active al panel correspondiente
+    document.getElementById(tabId).classList.add('active');
+}
+</script>
+{% endblock %}
