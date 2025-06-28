@@ -22,8 +22,8 @@ async def get_saldo_apartamento(apartamento_id: int) -> List[Dict[str, Any]]:
     """
     # 1. Define la expresión CASE para asignar signo al monto
     monto_con_signo = case(
-        (rfa.tipo_movimiento == 'DEBITO', -rfa.monto),
-        (rfa.tipo_movimiento == 'CREDITO', rfa.monto),
+        (rfa.tipo_movimiento == 'DEBITO', rfa.monto),
+        (rfa.tipo_movimiento == 'CREDITO', -rfa.monto),
         else_=0
     )
 
@@ -46,7 +46,13 @@ async def get_saldo_apartamento(apartamento_id: int) -> List[Dict[str, Any]]:
     # 4. Convertir resultados a lista de diccionarios
     saldos = []
     saldo_acumulado = 0.0
-    
+    print(apartamento_id)
+    for dato in results:
+        año, mes, saldo = dato
+        print(f"Año: {año}, Mes: {mes}, Saldo: {saldo}")
+ 
+
+
     for result in results:
         saldo_periodo = float(result.saldo)
         saldo_acumulado += saldo_periodo
@@ -61,7 +67,6 @@ async def get_saldo_apartamento(apartamento_id: int) -> List[Dict[str, Any]]:
                 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
             ][result.mes_aplicable]
         })
-    
     return saldos
 
 
