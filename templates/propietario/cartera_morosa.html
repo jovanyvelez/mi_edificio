@@ -87,7 +87,7 @@
         line-height: 1.5;
     }
     
-    /* Tabla de cartera morosa */
+    /* Container de cartera morosa */
     .cartera-table-container {
         background: white;
         border-radius: 16px;
@@ -108,65 +108,103 @@
         font-weight: 600;
     }
     
-    .cartera-table {
-        width: 100%;
-        border-collapse: collapse;
+    /* Cards de cartera morosa */
+    .cartera-grid {
+        display: grid;
+        gap: 1rem;
+        padding: 1.5rem;
     }
     
-    .cartera-table th,
-    .cartera-table td {
-        padding: 1rem;
-        text-align: left;
-        border-bottom: 1px solid #f3f4f6;
+    .cartera-card {
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        border-radius: 12px;
+        padding: 1.5rem;
+        transition: all 0.3s ease;
+        border-left: 4px solid #ef4444;
     }
     
-    .cartera-table th {
-        background: #f8fafc;
-        font-weight: 600;
-        color: #374151;
-        font-size: 0.9rem;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
+    .cartera-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(239, 68, 68, 0.15);
+        border-color: #f87171;
     }
     
-    .cartera-table tbody tr:hover {
-        background: #f8fafc;
+    .cartera-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+        gap: 0.75rem;
     }
     
-    /* Columnas específicas */
-    .apartamento-col {
+    .apartamento-info {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .apartamento-numero {
+        font-size: 1.2rem;
         font-weight: 700;
         color: #1f2937;
     }
     
-    .propietario-col {
-        color: #374151;
-    }
-    
-    .propietario-nombre {
-        font-weight: 600;
-        margin-bottom: 0.25rem;
-    }
-    
-    .propietario-documento {
-        font-size: 0.8rem;
-        color: #6b7280;
-        font-family: 'Courier New', monospace;
-        background: #f3f4f6;
-        padding: 0.2rem 0.4rem;
-        border-radius: 4px;
-        display: inline-block;
-    }
-    
-    .saldo-col {
-        font-weight: 700;
-        color: #ef4444;
+    .apartamento-icon {
         font-size: 1.1rem;
     }
     
-    .meses-col {
-        color: #f59e0b;
+    .mora-badge {
+        background: #fef3c7;
+        color: #92400e;
+        padding: 0.25rem 0.75rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
         font-weight: 600;
+        border: 1px solid #f59e0b;
+    }
+    
+    .saldo-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .saldo-principal {
+        flex: 1;
+    }
+    
+    .saldo-label {
+        font-size: 0.9rem;
+        color: #6b7280;
+        margin-bottom: 0.25rem;
+        font-weight: 500;
+    }
+    
+    .saldo-monto {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #ef4444;
+    }
+    
+    .mora-tiempo {
+        text-align: right;
+    }
+    
+    .mora-label {
+        font-size: 0.9rem;
+        color: #6b7280;
+        margin-bottom: 0.25rem;
+        font-weight: 500;
+    }
+    
+    .mora-valor {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #f59e0b;
     }
     
     /* Estados */
@@ -227,33 +265,86 @@
     
     /* Responsive */
     @media (max-width: 768px) {
-        .cartera-table {
-            font-size: 0.9rem;
+        .cartera-container {
+            padding: 0.5rem;
         }
         
-        .cartera-table th,
-        .cartera-table td {
-            padding: 0.75rem 0.5rem;
+        .header-section {
+            padding: 1.5rem;
+        }
+        
+        .header-section h1 {
+            font-size: 1.5rem;
         }
         
         .stats-grid {
             grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+        
+        .stat-card {
+            padding: 1.5rem;
+        }
+        
+        .stat-numero {
+            font-size: 2rem;
         }
         
         .disclaimer {
+            padding: 1rem;
             flex-direction: column;
             text-align: center;
         }
-    }
-    
-    /* Scroll en mobile */
-    @media (max-width: 1024px) {
-        .cartera-table-container {
-            overflow-x: auto;
+        
+        .cartera-grid {
+            padding: 1rem;
         }
         
-        .cartera-table {
-            min-width: 700px;
+        .cartera-card {
+            padding: 1rem;
+        }
+        
+        .cartera-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+        
+        .apartamento-numero {
+            font-size: 1.1rem;
+        }
+        
+        .saldo-info {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+        
+        .mora-tiempo {
+            text-align: left;
+        }
+        
+        .saldo-monto {
+            font-size: 1.3rem;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .cartera-header {
+            gap: 0.75rem;
+        }
+        
+        .mora-badge {
+            font-size: 0.8rem;
+            padding: 0.2rem 0.5rem;
+        }
+        
+        .saldo-monto {
+            font-size: 1.2rem;
+        }
+        
+        .mora-valor {
+            font-size: 1rem;
         }
     }
 </style>
@@ -308,50 +399,45 @@
         </div>
     </div>
 
-    <!-- Tabla de cartera morosa -->
+    <!-- Container de cartera morosa -->
     <div class="cartera-table-container">
         <div class="table-header">
             <h3>🏠 Detalle de Cartera Morosa</h3>
         </div>
         
         {% if cartera_morosa %}
-        <table class="cartera-table">
-            <thead>
-                <tr>
-                    <th>Apartamento</th>
-                    <th>Propietario</th>
-                    <th>Saldo Pendiente</th>
-                    <th>Meses en Mora</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in cartera_morosa %}
-                <tr>
-                    <td class="apartamento-col">
-                        🏠 {{ item.apartamento.identificador }}
-                    </td>
-                    <td class="propietario-col">
-                        {% if item.propietario %}
-                        <div class="propietario-nombre">{{ item.propietario.nombre_completo }}</div>
-                        <div class="propietario-documento">{{ item.propietario.documento_identidad }}</div>
-                        {% else %}
-                        <span class="sin-propietario">Sin propietario asignado</span>
-                        {% endif %}
-                    </td>
-                    <td class="saldo-col">
-                        ${{ "{:,.0f}".format(item.saldo_pendiente) }}
-                    </td>
-                    <td class="meses-col">
-                        {% if item.meses_mora == 1 %}
-                            {{ item.meses_mora }} mes
-                        {% else %}
-                            {{ item.meses_mora }} meses
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="cartera-grid">
+            {% for item in cartera_morosa %}
+            <div class="cartera-card">
+                <div class="cartera-header">
+                    <div class="apartamento-info">
+                        <span class="apartamento-icon">🏠</span>
+                        <span class="apartamento-numero">Apartamento {{ item.apartamento.identificador }}</span>
+                    </div>
+                    <div class="mora-badge">
+                        ⏰ {% if item.meses_mora == 1 %}{{ item.meses_mora }} mes{% else %}{{ item.meses_mora }} meses{% endif %}
+                    </div>
+                </div>
+                
+                <div class="saldo-info">
+                    <div class="saldo-principal">
+                        <div class="saldo-label">💰 Saldo Pendiente</div>
+                        <div class="saldo-monto">${{ "{:,.0f}".format(item.saldo_pendiente) }}</div>
+                    </div>
+                    <div class="mora-tiempo">
+                        <div class="mora-label">Tiempo en Mora</div>
+                        <div class="mora-valor">
+                            {% if item.meses_mora == 1 %}
+                                {{ item.meses_mora }} mes
+                            {% else %}
+                                {{ item.meses_mora }} meses
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
         {% else %}
         <div class="no-data">
             <div class="no-data-icon">🎉</div>
