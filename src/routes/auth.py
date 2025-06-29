@@ -53,6 +53,25 @@ async def login_for_web(
     session: Session = Depends(db_manager.get_session)
 ):
     """Procesar login de usuario desde formulario web"""
+    # Buscar usuario por email
+    from sqlmodel import select
+    user = session.exec(select(Usuario).where(Usuario.email == email)).first()
+    
+    if not user:
+        return templates.TemplateResponse("login.html", {
+            "request": request,
+            "error": "Email o contraseña incorrectos"
+        })
+    
+    # Verificar si el usuario no tiene contraseña establecida
+    if not user.hashed_password:
+        # Redirigir a la página de establecer contraseña
+        return RedirectResponse(
+            url=f"/establecer-password?email={email}", 
+            status_code=status.HTTP_302_FOUND
+        )
+    
+    # Autenticar usuario normalmente
     user = authenticate_user(session, email, password)
     
     if not user:
@@ -117,3 +136,110 @@ async def login_for_access_token(
         data={"sub": user.email}, expires_delta=access_token_expires
     )
     return Token(access_token=access_token, token_type="bearer")
+
+
+@router.get("/establecer-password", response_class=HTMLResponse)
+async def establecer_password_page(
+    request: Request, 
+    email: str,
+    session: Session = Depends(db_manager.get_session)
+):
+    """Mostrar página para establecer contraseña inicial"""
+    # Verificar que el usuario existe y no tiene contraseña
+    from sqlmodel import select
+    user = session.exec(select(Usuario).where(Usuario.email == email)).first()
+    
+    if not user or user.hashed_password:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado o ya tiene contraseña establecida")
+    
+    return templates.TemplateResponse("establecer_password.html", {
+        "request": request,
+        "email": email,
+        "user": user
+    })
+
+
+@router.post("/establecer-password")
+async def establecer_password_post(
+    request: Request,
+    email: str = Form(...),
+    password: str = Form(...),
+    confirm_password: str = Form(...),
+    session: Session = Depends(db_manager.get_session)
+):
+    """Procesar establecimiento de contraseña inicial"""
+    from sqlmodel import select
+    import re
+    from src.auth_dependencies import get_password_hash
+    
+    # Buscar usuario
+    user = session.exec(select(Usuario).where(Usuario.email == email)).first()
+    
+    if not user or user.hashed_password:
+        return templates.TemplateResponse("establecer_password.html", {
+            "request": request,
+            "email": email,
+            "error": "Usuario no encontrado o ya tiene contraseña establecida"
+        })
+    
+    # Validar que las contraseñas coincidan
+    if password != confirm_password:
+        return templates.TemplateResponse("establecer_password.html", {
+            "request": request,
+            "email": email,
+            "user": user,
+            "error": "Las contraseñas no coinciden"
+        })
+    
+    # Validar requisitos de contraseña
+    validation_errors = []
+    
+    if len(password) < 6 or len(password) > 14:
+        validation_errors.append("La contraseña debe tener entre 6 y 14 caracteres")
+    
+    if not re.search(r'[A-Z]', password):
+        validation_errors.append("La contraseña debe contener al menos una letra mayúscula")
+    
+    if not re.search(r'[0-9]', password):
+        validation_errors.append("La contraseña debe contener al menos un número")
+    
+    if validation_errors:
+        return templates.TemplateResponse("establecer_password.html", {
+            "request": request,
+            "email": email,
+            "user": user,
+            "error": " | ".join(validation_errors)
+        })
+    
+    # Hashear y guardar contraseña
+    user.hashed_password = get_password_hash(password)
+    session.add(user)
+    session.commit()
+    
+    # Crear token JWT para login automático
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.email}, 
+        expires_delta=access_token_expires
+    )
+    
+    # Determinar dashboard según rol
+    dashboard_url = "/dashboard" if user.rol == RolUsuarioEnum.ADMIN else "/propietario/dashboard"
+    
+    # Mostrar página de éxito con modal
+    response = templates.TemplateResponse("password_establecido_exitoso.html", {
+        "request": request,
+        "user": user,
+        "dashboard_url": dashboard_url
+    })
+    
+    # Establecer cookie de autenticación
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        httponly=True,
+        secure=False
+    )
+    
+    return response
