@@ -1,0 +1,995 @@
+{% extends "base.html" %}
+
+{% block title %}Gestión de Gastos{% endblock %}
+
+{% block header %}💰 Gestión de Gastos{% endblock %}
+
+{% block head %}
+<style>
+    .gastos-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 1rem;
+    }
+    
+    /* Header section */
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .page-title {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 1.8rem;
+        font-weight: 600;
+        color: #1976d2;
+        margin: 0;
+    }
+    
+    .page-subtitle {
+        color: #666;
+        margin: 0.5rem 0 0 0;
+        font-size: 1rem;
+    }
+    
+    .header-actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    
+    /* Buttons */
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.3s ease;
+        white-space: nowrap;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        color: white;
+    }
+    
+    .btn-outline {
+        background: transparent;
+        color: #3b82f6;
+        border: 2px solid #3b82f6;
+    }
+    
+    .btn-outline:hover {
+        background: #3b82f6;
+        color: white;
+    }
+    
+    .btn-danger {
+        background: linear-gradient(135deg, #dc2626, #b91c1c);
+        color: white;
+    }
+    
+    .btn-secondary {
+        background: #6b7280;
+        color: white;
+    }
+    
+    .btn-small {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8rem;
+    }
+    
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    
+    /* Alert messages */
+    .alert {
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        position: relative;
+    }
+    
+    .alert-success {
+        background: #d1fae5;
+        color: #065f46;
+        border-left: 4px solid #10b981;
+    }
+    
+    .alert-error {
+        background: #fee2e2;
+        color: #991b1b;
+        border-left: 4px solid #ef4444;
+    }
+    
+    .alert-close {
+        position: absolute;
+        right: 1rem;
+        background: none;
+        border: none;
+        font-size: 1.2rem;
+        cursor: pointer;
+        color: inherit;
+    }
+    
+    /* Stats cards */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .stats-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        text-align: center;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .stats-title {
+        font-size: 0.9rem;
+        margin: 0 0 0.5rem 0;
+        opacity: 0.9;
+        font-weight: 300;
+    }
+    
+    .stats-value {
+        font-size: 2rem;
+        font-weight: 700;
+        margin: 0;
+    }
+    
+    .stats-subtitle {
+        font-size: 0.8rem;
+        margin: 0.5rem 0 0 0;
+        opacity: 0.8;
+    }
+    
+    /* Filter section */
+    .filter-section {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .filter-form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        align-items: end;
+    }
+    
+    .form-group {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .form-label {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: #374151;
+    }
+    
+    .form-control {
+        padding: 0.75rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    
+    /* Main content card */
+    .main-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        overflow: hidden;
+        margin-bottom: 2rem;
+    }
+    
+    .card-header {
+        background: #f8f9fa;
+        padding: 1.5rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .card-title {
+        margin: 0;
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #374151;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .badge {
+        background: #3b82f6;
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        margin-left: 0.5rem;
+    }
+    
+    .card-body {
+        padding: 1.5rem;
+    }
+    
+    /* Table styles */
+    .table-container {
+        overflow-x: auto;
+    }
+    
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+    }
+    
+    .table th,
+    .table td {
+        padding: 1rem;
+        text-align: left;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .table th {
+        background: #f8f9fa;
+        font-weight: 600;
+        color: #374151;
+    }
+    
+    .table tr:hover {
+        background: #f8f9fa;
+    }
+    
+    .table tfoot th {
+        background: #f1f5f9;
+        font-weight: 700;
+        border-top: 2px solid #3b82f6;
+    }
+    
+    .amount-badge {
+        background: #dc2626;
+        color: white;
+        padding: 0.5rem 0.75rem;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+    
+    /* Empty state */
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: #6b7280;
+    }
+    
+    .empty-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+    
+    .empty-title {
+        font-size: 1.2rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .empty-subtitle {
+        margin-bottom: 1.5rem;
+    }
+    
+    /* Recent gastos grid */
+    .gastos-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1rem;
+    }
+    
+    .gasto-card {
+        background: white;
+        border-radius: 8px;
+        padding: 1rem;
+        border-left: 4px solid #dc2626;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .gasto-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    }
+    
+    .gasto-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 0.5rem;
+    }
+    
+    .gasto-title {
+        font-weight: 600;
+        margin: 0;
+        color: #374151;
+    }
+    
+    .gasto-date {
+        color: #6b7280;
+        font-size: 0.9rem;
+        margin: 0.25rem 0 0 0;
+    }
+    
+    .gasto-amount {
+        background: #dc2626;
+        color: white;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+    
+    .gasto-description {
+        color: #6b7280;
+        font-size: 0.9rem;
+        margin: 0.5rem 0 0 0;
+    }
+    
+    /* Modal styles */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        padding: 1rem;
+    }
+    
+    .modal-overlay.active {
+        display: flex;
+    }
+    
+    .modal {
+        background: white;
+        border-radius: 12px;
+        max-width: 600px;
+        width: 100%;
+        max-height: 90vh;
+        overflow: auto;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    }
+    
+    .modal-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .modal-title {
+        margin: 0;
+        font-size: 1.2rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .modal-close {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0;
+        width: 2rem;
+        height: 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+    }
+    
+    .modal-close:hover {
+        background: rgba(255,255,255,0.2);
+    }
+    
+    .modal-body {
+        padding: 1.5rem;
+    }
+    
+    .modal-footer {
+        padding: 1rem 1.5rem;
+        border-top: 1px solid #e5e7eb;
+        display: flex;
+        gap: 0.5rem;
+        justify-content: flex-end;
+    }
+    
+    .form-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .textarea {
+        resize: vertical;
+        min-height: 80px;
+    }
+    
+    /* Action buttons */
+    .action-buttons {
+        display: flex;
+        gap: 0.25rem;
+    }
+    
+    /* Responsive design */
+    @media (max-width: 768px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .header-actions {
+            justify-content: center;
+        }
+        
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .filter-form {
+            grid-template-columns: 1fr;
+        }
+        
+        .table-container {
+            font-size: 0.8rem;
+        }
+        
+        .table th,
+        .table td {
+            padding: 0.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="gastos-container">
+    <!-- Header -->
+    <div class="page-header">
+        <div>
+            <h2 class="page-title">
+                <span>🧾</span>
+                Gestión de Gastos
+            </h2>
+            <p class="page-subtitle">Administra los gastos de la comunidad</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-primary" onclick="openModal('modalNuevoGasto')">
+                <span>➕</span>Nuevo Gasto
+            </button>
+            <a href="/admin/gastos/reportes?año={{ año_actual }}" class="btn btn-outline">
+                <span>📊</span>Reportes
+            </a>
+        </div>
+    </div>
+
+    <!-- Mensajes de alerta -->
+    {% if request.query_params.get('success') %}
+        <div class="alert alert-success" id="successAlert">
+            <span>✅</span>
+            {% if request.query_params.get('success') == 'created' %}
+                Gasto registrado exitosamente.
+            {% elif request.query_params.get('success') == 'updated' %}
+                Gasto actualizado exitosamente.
+            {% elif request.query_params.get('success') == 'deleted' %}
+                Gasto eliminado exitosamente.
+            {% endif %}
+            <button class="alert-close" onclick="closeAlert('successAlert')">&times;</button>
+        </div>
+    {% endif %}
+
+    {% if request.query_params.get('error') %}
+        <div class="alert alert-error" id="errorAlert">
+            <span>⚠️</span>
+            {% if request.query_params.get('error') == 'invalid_amount' %}
+                El monto debe ser mayor a cero.
+            {% elif request.query_params.get('error') == 'concepto_not_found' %}
+                El concepto seleccionado no existe.
+            {% elif request.query_params.get('error') == 'gasto_not_found' %}
+                El gasto especificado no existe.
+            {% elif request.query_params.get('error') == 'database' %}
+                Error en la base de datos. Intente nuevamente.
+            {% else %}
+                Error desconocido. Intente nuevamente.
+            {% endif %}
+            <button class="alert-close" onclick="closeAlert('errorAlert')">&times;</button>
+        </div>
+    {% endif %}
+
+    <!-- Estadísticas -->
+    <div class="stats-grid">
+        <div class="stats-card">
+            <h3 class="stats-title">Gastos del Mes</h3>
+            <p class="stats-value">${{ "{:,.0f}".format(total_gastos_mes) }}</p>
+            <p class="stats-subtitle">{{ nombres_meses[mes_actual] }} {{ año_actual }}</p>
+        </div>
+        <div class="stats-card">
+            <h3 class="stats-title">Gastos del Año</h3>
+            <p class="stats-value">${{ "{:,.0f}".format(gastos_año) }}</p>
+            <p class="stats-subtitle">{{ año_actual }}</p>
+        </div>
+        <div class="stats-card">
+            <h3 class="stats-title">Total Gastos</h3>
+            <p class="stats-value">{{ cantidad_gastos_año }}</p>
+            <p class="stats-subtitle">Registros en {{ año_actual }}</p>
+        </div>
+        <div class="stats-card">
+            <h3 class="stats-title">Promedio Mensual</h3>
+            <p class="stats-value">${{ "{:,.0f}".format(gastos_año / 12 if gastos_año else 0) }}</p>
+            <p class="stats-subtitle">{{ año_actual }}</p>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="filter-section">
+        <form method="get" class="filter-form">
+            <div class="form-group">
+                <label for="año" class="form-label">Año</label>
+                <select class="form-control" id="año" name="año">
+                    {% for año_opt in años_disponibles %}
+                        <option value="{{ año_opt }}" {% if año_opt == año_actual %}selected{% endif %}>
+                            {{ año_opt }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="mes" class="form-label">Mes</label>
+                <select class="form-control" id="mes" name="mes">
+                    {% for mes_num, mes_nombre in nombres_meses.items() %}
+                        <option value="{{ mes_num }}" {% if mes_num == mes_actual %}selected{% endif %}>
+                            {{ mes_nombre }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary">
+                    <span>🔍</span>Filtrar
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Lista de Gastos del Mes -->
+    <div class="main-card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <span>📅</span>
+                Gastos de {{ nombres_meses[mes_actual] }} {{ año_actual }}
+                <span class="badge">{{ gastos_mes|length }} registros</span>
+            </h3>
+        </div>
+        <div class="card-body">
+            {% if gastos_mes %}
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Concepto</th>
+                                <th>Descripción</th>
+                                <th>Monto</th>
+                                <th>Presupuesto</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for gasto in gastos_mes %}
+                                <tr>
+                                    <td>{{ gasto.fecha_gasto.strftime('%d/%m/%Y') }}</td>
+                                    <td><strong>{{ gasto.concepto.nombre }}</strong></td>
+                                    <td>
+                                        {% if gasto.descripcion_adicional %}
+                                            {{ gasto.descripcion_adicional[:50] }}
+                                            {% if gasto.descripcion_adicional|length > 50 %}...{% endif %}
+                                        {% else %}
+                                            <span style="color: #6b7280;">Sin descripción</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="amount-badge">
+                                            ${{ "{:,.2f}".format(gasto.monto) }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if gasto.presupuesto_anual %}
+                                            <small style="color: #6b7280;">{{ gasto.presupuesto_anual.año }}</small>
+                                        {% else %}
+                                            <span style="color: #6b7280;">N/A</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn btn-outline btn-small" 
+                                                    data-gasto-id="{{ gasto.id }}"
+                                                    data-fecha="{{ gasto.fecha_gasto.strftime('%Y-%m-%d') }}"
+                                                    data-concepto-id="{{ gasto.concepto_id }}"
+                                                    data-concepto-nombre="{{ gasto.concepto.nombre }}"
+                                                    data-monto="{{ gasto.monto }}"
+                                                    data-descripcion="{{ gasto.descripcion_adicional or '' }}"
+                                                    data-presupuesto-id="{{ gasto.presupuesto_anual_id or '' }}"
+                                                    onclick="editarGasto(this)">
+                                                ✏️
+                                            </button>
+                                            <button class="btn btn-danger btn-small" 
+                                                    data-gasto-id="{{ gasto.id }}"
+                                                    data-concepto-nombre="{{ gasto.concepto.nombre }}"
+                                                    data-monto="{{ gasto.monto }}"
+                                                    onclick="confirmarEliminar(this)">
+                                                🗑️
+                                            </button>
+                                            {% if gasto.documento_soporte_path %}
+                                                <button class="btn btn-outline btn-small" title="Tiene documento adjunto">
+                                                    📎
+                                                </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th colspan="3">Total del Mes</th>
+                                <th>
+                                    <span class="amount-badge">
+                                        ${{ "{:,.2f}".format(total_gastos_mes) }}
+                                    </span>
+                                </th>
+                                <th colspan="2"></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon">🧾</div>
+                    <h3 class="empty-title">No hay gastos registrados</h3>
+                    <p class="empty-subtitle">para {{ nombres_meses[mes_actual] }} {{ año_actual }}</p>
+                    <button class="btn btn-primary" onclick="openModal('modalNuevoGasto')">
+                        <span>➕</span>Registrar Primer Gasto
+                    </button>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Gastos Recientes -->
+    {% if gastos_recientes %}
+        <div class="main-card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <span>🕒</span>Gastos Recientes
+                </h3>
+            </div>
+            <div class="card-body">
+                <div class="gastos-grid">
+                    {% for gasto in gastos_recientes %}
+                        <div class="gasto-card">
+                            <div class="gasto-header">
+                                <div>
+                                    <h4 class="gasto-title">{{ gasto.concepto.nombre }}</h4>
+                                    <p class="gasto-date">{{ gasto.fecha_gasto.strftime('%d/%m/%Y') }}</p>
+                                </div>
+                                <span class="gasto-amount">
+                                    ${{ "{:,.0f}".format(gasto.monto) }}
+                                </span>
+                            </div>
+                            {% if gasto.descripcion_adicional %}
+                                <p class="gasto-description">{{ gasto.descripcion_adicional[:60] }}...</p>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Modal Nuevo Gasto -->
+<div class="modal-overlay" id="modalNuevoGasto">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 class="modal-title">
+                <span>➕</span>Nuevo Gasto
+            </h3>
+            <button class="modal-close" onclick="closeModal('modalNuevoGasto')">&times;</button>
+        </div>
+        <form method="post" action="/admin/gastos/crear" enctype="multipart/form-data">
+            <div class="modal-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="fecha_gasto" class="form-label">Fecha del Gasto</label>
+                        <input type="date" class="form-control" id="fecha_gasto" name="fecha_gasto" 
+                               value="{{ fecha_hoy }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="monto" class="form-label">Monto ($)</label>
+                        <input type="number" class="form-control" id="monto" name="monto" 
+                               step="0.01" min="0.01" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="concepto_id" class="form-label">Concepto</label>
+                    <select class="form-control" id="concepto_id" name="concepto_id" required>
+                        <option value="">Seleccione un concepto</option>
+                        {% for concepto in conceptos %}
+                            <option value="{{ concepto.id }}">{{ concepto.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="descripcion_adicional" class="form-label">Descripción Adicional</label>
+                    <textarea class="form-control textarea" id="descripcion_adicional" name="descripcion_adicional" 
+                              placeholder="Descripción adicional"></textarea>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="presupuesto_anual_id" class="form-label">Presupuesto</label>
+                        <select class="form-control" id="presupuesto_anual_id" name="presupuesto_anual_id">
+                            <option value="">Sin asociar a presupuesto</option>
+                            {% for presupuesto in presupuestos %}
+                                <option value="{{ presupuesto.id }}">
+                                    Presupuesto {{ presupuesto.año }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="documento_soporte" class="form-label">Documento de Soporte</label>
+                        <input type="file" class="form-control" id="documento_soporte" name="documento_soporte" 
+                               accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+                        <small style="color: #6b7280;">PDF, imágenes o documentos de Word</small>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modalNuevoGasto')">
+                    <span>❌</span>Cancelar
+                </button>
+                <button type="submit" class="btn btn-primary">
+                    <span>💾</span>Registrar Gasto
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Editar Gasto -->
+<div class="modal-overlay" id="modalEditarGasto">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 class="modal-title">
+                <span>✏️</span>Editar Gasto
+            </h3>
+            <button class="modal-close" onclick="closeModal('modalEditarGasto')">&times;</button>
+        </div>
+        <form method="post" id="formEditarGasto">
+            <div class="modal-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit_fecha_gasto" class="form-label">Fecha del Gasto</label>
+                        <input type="date" class="form-control" id="edit_fecha_gasto" name="fecha_gasto" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_monto" class="form-label">Monto ($)</label>
+                        <input type="number" class="form-control" id="edit_monto" name="monto" 
+                               step="0.01" min="0.01" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit_concepto_id" class="form-label">Concepto</label>
+                    <select class="form-control" id="edit_concepto_id" name="concepto_id" required>
+                        <option value="">Seleccione un concepto</option>
+                        {% for concepto in conceptos %}
+                            <option value="{{ concepto.id }}">{{ concepto.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit_descripcion_adicional" class="form-label">Descripción Adicional</label>
+                    <textarea class="form-control textarea" id="edit_descripcion_adicional" name="descripcion_adicional" 
+                              placeholder="Descripción adicional"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit_presupuesto_anual_id" class="form-label">Presupuesto</label>
+                    <select class="form-control" id="edit_presupuesto_anual_id" name="presupuesto_anual_id">
+                        <option value="">Sin asociar a presupuesto</option>
+                        {% for presupuesto in presupuestos %}
+                            <option value="{{ presupuesto.id }}">
+                                Presupuesto {{ presupuesto.año }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modalEditarGasto')">
+                    <span>❌</span>Cancelar
+                </button>
+                <button type="submit" class="btn btn-primary">
+                    <span>💾</span>Actualizar Gasto
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Confirmar Eliminar -->
+<div class="modal-overlay" id="modalEliminarGasto">
+    <div class="modal">
+        <div class="modal-header" style="background: linear-gradient(135deg, #dc2626, #b91c1c);">
+            <h3 class="modal-title">
+                <span>⚠️</span>Confirmar Eliminación
+            </h3>
+            <button class="modal-close" onclick="closeModal('modalEliminarGasto')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p>¿Está seguro que desea eliminar este gasto?</p>
+            <div class="alert alert-error">
+                <strong>Concepto:</strong> <span id="eliminar_concepto"></span><br>
+                <strong>Monto:</strong> $<span id="eliminar_monto"></span>
+            </div>
+            <p style="color: #6b7280;">Esta acción no se puede deshacer.</p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('modalEliminarGasto')">
+                <span>❌</span>Cancelar
+            </button>
+            <form method="post" id="formEliminarGasto" style="display: inline;">
+                <button type="submit" class="btn btn-danger">
+                    <span>🗑️</span>Eliminar
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Funciones para manejar modales
+function openModal(modalId) {
+    document.getElementById(modalId).classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.remove('active');
+    document.body.style.overflow = 'auto';
+}
+
+// Cerrar modal al hacer clic en el overlay
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('modal-overlay')) {
+        closeModal(e.target.id);
+    }
+});
+
+// Cerrar modal con tecla Escape
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const activeModal = document.querySelector('.modal-overlay.active');
+        if (activeModal) {
+            closeModal(activeModal.id);
+        }
+    }
+});
+
+// Función para cerrar alertas
+function closeAlert(alertId) {
+    const alert = document.getElementById(alertId);
+    if (alert) {
+        alert.style.display = 'none';
+    }
+}
+
+// Función para editar gasto
+function editarGasto(button) {
+    const gastoId = button.dataset.gastoId;
+    const fecha = button.dataset.fecha;
+    const conceptoId = button.dataset.conceptoId;
+    const monto = button.dataset.monto;
+    const descripcion = button.dataset.descripcion;
+    const presupuestoId = button.dataset.presupuestoId;
+    
+    document.getElementById('edit_fecha_gasto').value = fecha;
+    document.getElementById('edit_monto').value = monto;
+    document.getElementById('edit_concepto_id').value = conceptoId;
+    document.getElementById('edit_descripcion_adicional').value = descripcion;
+    document.getElementById('edit_presupuesto_anual_id').value = presupuestoId;
+    
+    document.getElementById('formEditarGasto').action = '/admin/gastos/' + gastoId + '/editar';
+    
+    openModal('modalEditarGasto');
+}
+
+// Función para confirmar eliminación
+function confirmarEliminar(button) {
+    const gastoId = button.dataset.gastoId;
+    const conceptoNombre = button.dataset.conceptoNombre;
+    const monto = button.dataset.monto;
+    
+    document.getElementById('eliminar_concepto').textContent = conceptoNombre;
+    document.getElementById('eliminar_monto').textContent = parseFloat(monto).toLocaleString('es-CO', {minimumFractionDigits: 2});
+    
+    document.getElementById('formEliminarGasto').action = '/admin/gastos/' + gastoId + '/eliminar';
+    
+    openModal('modalEliminarGasto');
+}
+
+// Configuración inicial
+document.addEventListener('DOMContentLoaded', function() {
+    // Establecer fecha actual si no está definida
+    const fechaInput = document.getElementById('fecha_gasto');
+    if (fechaInput && !fechaInput.value) {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        fechaInput.value = `${year}-${month}-${day}`;
+    }
+    
+    // Auto-dismiss alerts después de 5 segundos
+    setTimeout(function() {
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(function(alert) {
+            alert.style.opacity = '0';
+            setTimeout(() => alert.style.display = 'none', 300);
+        });
+    }, 5000);
+});
+</script>
+{% endblock %}

@@ -9,7 +9,7 @@ from src.models import (
     db_manager, Usuario, Propietario, Apartamento, Concepto,
     RolUsuarioEnum, TipoMovimientoEnum,
     RegistroFinancieroApartamento, CuotaConfiguracion, ControlProcesamientoMensual,
-    TasaInteresMora
+    TasaInteresMora, GastoComunidad, PresupuestoAnual
 )
 from src.auth_dependencies import  admin_required_web
 
@@ -1020,3 +1020,330 @@ async def crear_tasa_interes(request: Request, session: Annotated[Session, Depen
             url="/admin/tasas-interes?error=database",
             status_code=status.HTTP_302_FOUND
         )
+
+# Rutas para gestión de gastos de la comunidad
+@router.get("/admin/gastos", response_class=HTMLResponse)
+async def vista_gastos_comunidad(request: Request, session: Annotated[Session, Depends(db_manager.get_session)],
+                                User: Annotated[Usuario, Depends(admin_required_web)],
+                                año: Optional[int] = None,
+                                mes: Optional[int] = None):
+    """Vista principal para gestionar gastos de la comunidad"""
+    
+    # Usar año y mes actual si no se especifican
+    if not año:
+        año = datetime.now().year
+    if not mes:
+        mes = datetime.now().month
+    
+    # Obtener gastos del mes actual
+    gastos_mes = session.exec(
+        select(GastoComunidad)
+        .where(GastoComunidad.año_gasto == año)
+        .where(GastoComunidad.mes_gasto == mes)
+        .order_by(GastoComunidad.fecha_gasto.desc())
+    ).all()
+    
+    # Obtener todos los conceptos para el formulario
+    conceptos = session.exec(
+        select(Concepto)
+        .where(Concepto.es_ingreso_tipico == False)  # Filtrar conceptos de gastos
+        .order_by(Concepto.nombre)
+    ).all()
+    
+    # Obtener presupuestos anuales disponibles
+    presupuestos = session.exec(
+        select(PresupuestoAnual)
+        .order_by(PresupuestoAnual.año.desc())
+    ).all()
+    
+    # Calcular totales del mes
+    total_gastos_mes = sum(gasto.monto for gasto in gastos_mes)
+    
+    # Obtener gastos recientes (últimos 10 independiente del filtro)
+    gastos_recientes = session.exec(
+        select(GastoComunidad)
+        .order_by(GastoComunidad.fecha_gasto.desc())
+        .limit(10)
+    ).all()
+    
+    # Estadísticas del año
+    gastos_año = session.exec(
+        select(func.sum(GastoComunidad.monto))
+        .where(GastoComunidad.año_gasto == año)
+    ).first() or 0
+    
+    cantidad_gastos_año = session.exec(
+        select(func.count(GastoComunidad.id))
+        .where(GastoComunidad.año_gasto == año)
+    ).first() or 0
+    
+    # Nombres de meses para el selector
+    nombres_meses = {
+        1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril", 5: "Mayo", 6: "Junio",
+        7: "Julio", 8: "Agosto", 9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
+    }
+    
+    return templates.TemplateResponse("admin/gastos_comunidad.html", {
+        "request": request,
+        "gastos_mes": gastos_mes,
+        "gastos_recientes": gastos_recientes,
+        "conceptos": conceptos,
+        "presupuestos": presupuestos,
+        "año_actual": año,
+        "mes_actual": mes,
+        "total_gastos_mes": total_gastos_mes,
+        "gastos_año": gastos_año,
+        "cantidad_gastos_año": cantidad_gastos_año,
+        "nombres_meses": nombres_meses,
+        "años_disponibles": list(range(2020, datetime.now().year + 2)),
+        "fecha_hoy": datetime.now().strftime('%Y-%m-%d')
+    })
+
+@router.post("/admin/gastos/crear")
+async def crear_gasto_comunidad(request: Request, session: Annotated[Session, Depends(db_manager.get_session)],
+                               User: Annotated[Usuario, Depends(admin_required_web)],
+                               fecha_gasto: date = Form(...),
+                               concepto_id: int = Form(...),
+                               monto: float = Form(...),
+                               descripcion_adicional: Optional[str] = Form(None),
+                               presupuesto_anual_id: Optional[int] = Form(None),
+                               documento_soporte: Optional[UploadFile] = File(None)):
+    """Crear nuevo gasto de la comunidad"""
+    
+    try:
+        # Validar que el monto sea positivo
+        if monto <= 0:
+            return RedirectResponse(
+                url="/admin/gastos?error=invalid_amount",
+                status_code=status.HTTP_302_FOUND
+            )
+        
+        # Validar que el concepto existe
+        concepto = session.get(Concepto, concepto_id)
+        if not concepto:
+            return RedirectResponse(
+                url="/admin/gastos?error=concepto_not_found",
+                status_code=status.HTTP_302_FOUND
+            )
+        
+        # Procesar documento de soporte si se subió
+        documento_path = None
+        if documento_soporte and documento_soporte.filename:
+            # Por ahora, solo guardamos el nombre del archivo
+            # En el futuro se puede implementar el almacenamiento real
+            documento_path = f"gastos/{datetime.now().strftime('%Y%m%d_%H%M%S')}_{documento_soporte.filename}"
+        
+        # Convertir monto a Decimal
+        from decimal import Decimal
+        monto_decimal = Decimal(str(monto))
+        
+        # Extraer mes y año de la fecha
+        mes_gasto = fecha_gasto.month
+        año_gasto = fecha_gasto.year
+        
+        # Validar presupuesto si se especificó
+        if presupuesto_anual_id and presupuesto_anual_id != "":
+            presupuesto = session.get(PresupuestoAnual, presupuesto_anual_id)
+            if not presupuesto:
+                presupuesto_anual_id = None
+        else:
+            presupuesto_anual_id = None
+        
+        # Crear el gasto
+        nuevo_gasto = GastoComunidad(
+            fecha_gasto=fecha_gasto,
+            concepto_id=concepto_id,
+            descripcion_adicional=descripcion_adicional,
+            monto=monto_decimal,
+            documento_soporte_path=documento_path,
+            presupuesto_anual_id=presupuesto_anual_id,
+            mes_gasto=mes_gasto,
+            año_gasto=año_gasto
+        )
+        
+        session.add(nuevo_gasto)
+        session.commit()
+        
+        return RedirectResponse(
+            url=f"/admin/gastos?success=created&año={año_gasto}&mes={mes_gasto}",
+            status_code=status.HTTP_302_FOUND
+        )
+        
+    except Exception as e:
+        session.rollback()
+        print(f"Error creando gasto: {e}")
+        return RedirectResponse(
+            url="/admin/gastos?error=database",
+            status_code=status.HTTP_302_FOUND
+        )
+
+@router.post("/admin/gastos/{gasto_id}/editar")
+async def editar_gasto_comunidad(gasto_id: int,
+                                 request: Request, 
+                                 session: Annotated[Session, Depends(db_manager.get_session)],
+                                 User: Annotated[Usuario, Depends(admin_required_web)],
+                                 fecha_gasto: date = Form(...),
+                                 concepto_id: int = Form(...),
+                                 monto: float = Form(...),
+                                 descripcion_adicional: Optional[str] = Form(None),
+                                 presupuesto_anual_id: Optional[int] = Form(None)):
+    """Editar gasto existente de la comunidad"""
+    
+    try:
+        # Buscar el gasto
+        gasto = session.get(GastoComunidad, gasto_id)
+        if not gasto:
+            return RedirectResponse(
+                url="/admin/gastos?error=gasto_not_found",
+                status_code=status.HTTP_302_FOUND
+            )
+        
+        # Validar que el monto sea positivo
+        if monto <= 0:
+            return RedirectResponse(
+                url="/admin/gastos?error=invalid_amount",
+                status_code=status.HTTP_302_FOUND
+            )
+        
+        # Validar que el concepto existe
+        concepto = session.get(Concepto, concepto_id)
+        if not concepto:
+            return RedirectResponse(
+                url="/admin/gastos?error=concepto_not_found",
+                status_code=status.HTTP_302_FOUND
+            )
+        
+        # Actualizar campos
+        from decimal import Decimal
+        gasto.fecha_gasto = fecha_gasto
+        gasto.concepto_id = concepto_id
+        gasto.monto = Decimal(str(monto))
+        gasto.descripcion_adicional = descripcion_adicional
+        gasto.mes_gasto = fecha_gasto.month
+        gasto.año_gasto = fecha_gasto.year
+        
+        # Validar presupuesto si se especificó
+        if presupuesto_anual_id and presupuesto_anual_id != "":
+            presupuesto = session.get(PresupuestoAnual, presupuesto_anual_id)
+            if presupuesto:
+                gasto.presupuesto_anual_id = presupuesto_anual_id
+        else:
+            gasto.presupuesto_anual_id = None
+        
+        session.add(gasto)
+        session.commit()
+        
+        return RedirectResponse(
+            url=f"/admin/gastos?success=updated&año={gasto.año_gasto}&mes={gasto.mes_gasto}",
+            status_code=status.HTTP_302_FOUND
+        )
+        
+    except Exception as e:
+        session.rollback()
+        print(f"Error editando gasto: {e}")
+        return RedirectResponse(
+            url="/admin/gastos?error=database",
+            status_code=status.HTTP_302_FOUND
+        )
+
+@router.post("/admin/gastos/{gasto_id}/eliminar")
+async def eliminar_gasto_comunidad(gasto_id: int,
+                                   request: Request,
+                                   session: Annotated[Session, Depends(db_manager.get_session)],
+                                   User: Annotated[Usuario, Depends(admin_required_web)]):
+    """Eliminar gasto de la comunidad"""
+    
+    try:
+        # Buscar el gasto
+        gasto = session.get(GastoComunidad, gasto_id)
+        if not gasto:
+            return RedirectResponse(
+                url="/admin/gastos?error=gasto_not_found",
+                status_code=status.HTTP_302_FOUND
+            )
+        
+        # Guardar año y mes para la redirección
+        año_gasto = gasto.año_gasto
+        mes_gasto = gasto.mes_gasto
+        
+        # Eliminar el gasto
+        session.delete(gasto)
+        session.commit()
+        
+        return RedirectResponse(
+            url=f"/admin/gastos?success=deleted&año={año_gasto}&mes={mes_gasto}",
+            status_code=status.HTTP_302_FOUND
+        )
+        
+    except Exception as e:
+        session.rollback()
+        print(f"Error eliminando gasto: {e}")
+        return RedirectResponse(
+            url="/admin/gastos?error=database",
+            status_code=status.HTTP_302_FOUND
+        )
+
+@router.get("/admin/gastos/reportes", response_class=HTMLResponse)
+async def reportes_gastos_comunidad(request: Request, session: Annotated[Session, Depends(db_manager.get_session)],
+                                   User: Annotated[Usuario, Depends(admin_required_web)],
+                                   año: Optional[int] = None):
+    """Vista de reportes de gastos de la comunidad"""
+    
+    if not año:
+        año = datetime.now().year
+    
+    # Obtener gastos del año agrupados por mes
+    gastos_año = session.exec(
+        select(GastoComunidad)
+        .where(GastoComunidad.año_gasto == año)
+        .order_by(GastoComunidad.mes_gasto, GastoComunidad.fecha_gasto.desc())
+    ).all()
+    
+    # Organizar gastos por mes
+    gastos_por_mes = {}
+    for gasto in gastos_año:
+        mes = gasto.mes_gasto or 0
+        if mes not in gastos_por_mes:
+            gastos_por_mes[mes] = []
+        gastos_por_mes[mes].append(gasto)
+    
+    # Calcular totales por mes
+    totales_mes = {}
+    for mes, gastos in gastos_por_mes.items():
+        totales_mes[mes] = sum(gasto.monto for gasto in gastos)
+    
+    # Obtener gastos agrupados por concepto
+    from sqlmodel import text
+    gastos_por_concepto = session.exec(
+        text("""
+            SELECT c.nombre, 
+                   COUNT(gc.id) as cantidad,
+                   SUM(gc.monto) as total_monto
+            FROM gasto_comunidad gc
+            JOIN concepto c ON gc.concepto_id = c.id
+            WHERE gc.año_gasto = :año
+            GROUP BY c.id, c.nombre
+            ORDER BY total_monto DESC
+        """),
+        {"año": año}
+    ).all()
+    
+    # Total general del año
+    total_año = sum(gasto.monto for gasto in gastos_año)
+    
+    # Nombres de meses
+    nombres_meses = {
+        1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril", 5: "Mayo", 6: "Junio",
+        7: "Julio", 8: "Agosto", 9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
+    }
+    
+    return templates.TemplateResponse("admin/gastos_reportes.html", {
+        "request": request,
+        "año_actual": año,
+        "gastos_por_mes": gastos_por_mes,
+        "totales_mes": totales_mes,
+        "gastos_por_concepto": gastos_por_concepto,
+        "total_año": total_año,
+        "nombres_meses": nombres_meses,
+        "años_disponibles": list(range(2020, datetime.now().year + 2))
+    })
