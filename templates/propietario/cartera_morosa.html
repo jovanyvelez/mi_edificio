@@ -352,10 +352,16 @@
 
 {% block content %}
 <div class="cartera-container">
-    <!-- Botón de regreso -->
-    <a href="/propietario/dashboard" class="btn-regreso">
-        ← Regresar
-    </a>
+    <!-- Botones de navegación -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+        <a href="/propietario/dashboard" class="btn-regreso">
+            ← Regresar al Dashboard
+        </a>
+        
+        <a href="/logout" class="btn-regreso" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+            🚪 Cerrar Sesión
+        </a>
+    </div>
 
     <!-- Header -->
     <div class="header-section">

@@ -1,0 +1,315 @@
+{% extends "base.html" %}
+
+{% block title %}Guía de Usuario - Portal del Propietario{% endblock %}
+
+{% block header %}📖 Guía de Usuario{% endblock %}
+
+{% block head %}
+<style>
+    .ayuda-container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 1rem;
+    }
+    
+    .ayuda-header {
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 16px;
+        text-align: center;
+        margin-bottom: 2rem;
+        box-shadow: 0 8px 32px rgba(59, 130, 246, 0.3);
+    }
+    
+    .ayuda-header h1 {
+        font-size: 2rem;
+        margin: 0 0 0.5rem 0;
+        font-weight: 600;
+    }
+    
+    .ayuda-header p {
+        font-size: 1.1rem;
+        opacity: 0.9;
+        margin: 0;
+    }
+    
+    .back-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: #10b981;
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 12px;
+        text-decoration: none;
+        font-weight: 500;
+        margin-bottom: 1.5rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+    
+    .back-button:hover {
+        background: #059669;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+    }
+    
+    .instructivo-content {
+        background: white;
+        border-radius: 16px;
+        padding: 2.5rem;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        line-height: 1.7;
+    }
+    
+    /* Estilos para el contenido markdown */
+    .instructivo-content h1 {
+        color: #1f2937;
+        border-bottom: 3px solid #10b981;
+        padding-bottom: 0.5rem;
+        margin-bottom: 1.5rem;
+        font-size: 2rem;
+        margin-top: 0;
+    }
+    
+    .instructivo-content h2 {
+        color: #374151;
+        margin-top: 2.5rem;
+        margin-bottom: 1rem;
+        font-size: 1.5rem;
+        border-left: 4px solid #10b981;
+        padding-left: 1rem;
+        background: #f0fdf4;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+    }
+    
+    .instructivo-content h3 {
+        color: #4b5563;
+        margin-top: 1.5rem;
+        margin-bottom: 0.75rem;
+        font-size: 1.2rem;
+        font-weight: 600;
+    }
+    
+    .instructivo-content p {
+        margin-bottom: 1rem;
+        color: #374151;
+        text-align: justify;
+    }
+    
+    .instructivo-content ul {
+        margin-bottom: 1rem;
+        padding-left: 1.5rem;
+    }
+    
+    .instructivo-content ol {
+        margin-bottom: 1rem;
+        padding-left: 1.5rem;
+    }
+    
+    .instructivo-content li {
+        margin-bottom: 0.5rem;
+        color: #374151;
+        line-height: 1.6;
+    }
+    
+    .instructivo-content strong {
+        color: #1f2937;
+        font-weight: 600;
+    }
+    
+    .instructivo-content em {
+        color: #059669;
+        font-style: italic;
+    }
+    
+    .instructivo-content code {
+        background: #f3f4f6;
+        padding: 0.2rem 0.4rem;
+        border-radius: 4px;
+        font-family: 'Courier New', monospace;
+        color: #374151;
+        font-size: 0.9rem;
+        border: 1px solid #e5e7eb;
+    }
+    
+    .instructivo-content pre {
+        background: #1f2937;
+        color: #f9fafb;
+        padding: 1rem;
+        border-radius: 8px;
+        overflow-x: auto;
+        margin: 1rem 0;
+    }
+    
+    .instructivo-content pre code {
+        background: transparent;
+        color: inherit;
+        padding: 0;
+        border: none;
+    }
+    
+    .instructivo-content blockquote {
+        border-left: 4px solid #3b82f6;
+        padding-left: 1rem;
+        margin: 1rem 0;
+        background: #eff6ff;
+        padding: 1rem;
+        border-radius: 8px;
+        font-style: italic;
+        color: #1e40af;
+    }
+    
+    .instructivo-content table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 1rem 0;
+        background: white;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    
+    .instructivo-content th {
+        background: #10b981;
+        color: white;
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+    }
+    
+    .instructivo-content td {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .instructivo-content tr:nth-child(even) {
+        background: #f9fafb;
+    }
+    
+    /* Separadores de sección */
+    .instructivo-content hr {
+        border: none;
+        height: 2px;
+        background: linear-gradient(90deg, #10b981, transparent);
+        margin: 2rem 0;
+    }
+    
+    /* Tabla de contenidos */
+    .table-of-contents {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .table-of-contents h3 {
+        margin-top: 0;
+        color: #1f2937;
+        font-size: 1.2rem;
+    }
+    
+    .table-of-contents ul {
+        margin-bottom: 0;
+    }
+    
+    .table-of-contents a {
+        color: #3b82f6;
+        text-decoration: none;
+    }
+    
+    .table-of-contents a:hover {
+        text-decoration: underline;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .ayuda-container {
+            padding: 0.5rem;
+        }
+        
+        .instructivo-content {
+            padding: 1.5rem;
+        }
+        
+        .ayuda-header h1 {
+            font-size: 1.5rem;
+        }
+        
+        .back-button {
+            font-size: 0.9rem;
+            padding: 0.6rem 1rem;
+        }
+        
+        /* En móvil, hacer que los botones se apilen verticalmente */
+        .ayuda-container > div:first-child {
+            flex-direction: column !important;
+            align-items: stretch !important;
+        }
+        
+        .ayuda-container > div:first-child > div {
+            justify-content: center !important;
+        }
+    }
+    
+    /* Estilos para imprimir */
+    @media print {
+        .back-button {
+            display: none !important;
+        }
+        
+        .ayuda-header {
+            background: #3b82f6 !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        
+        .instructivo-content {
+            box-shadow: none;
+            border: 1px solid #ccc;
+        }
+        
+        .instructivo-content h2 {
+            background: #f0fdf4 !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ayuda-container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+        <a href="/propietario/dashboard" class="back-button">
+            <span>←</span>
+            Volver al Dashboard
+        </a>
+        
+        <div style="display: flex; gap: 1rem;">
+            <button onclick="window.print()" class="back-button" style="background: #3b82f6; cursor: pointer; border: none;">
+                <span>🖨️</span>
+                Imprimir Guía
+            </button>
+            
+            <a href="/logout" class="back-button" style="background: #ef4444;">
+                <span>🚪</span>
+                Cerrar Sesión
+            </a>
+        </div>
+    </div>
+    
+    <div class="ayuda-header">
+        <h1>📖 Guía de Usuario</h1>
+        <p>Instructivo completo para el uso del Portal del Propietario</p>
+    </div>
+    
+    <div class="instructivo-content">
+        {{ instructivo_html | safe }}
+    </div>
+</div>
+{% endblock %}

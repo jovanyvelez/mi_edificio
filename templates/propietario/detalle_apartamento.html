@@ -365,10 +365,16 @@
 
 {% block content %}
 <div class="detalle-container">
-    <!-- Botón de regreso -->
-    <a href="/propietario/estado-cuenta" class="btn-regreso">
-        ← Regresar al Estado de Cuenta
-    </a>
+    <!-- Botones de navegación -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+        <a href="/propietario/estado-cuenta" class="btn-regreso">
+            ← Regresar al Estado de Cuenta
+        </a>
+        
+        <a href="/logout" class="btn-regreso" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+            🚪 Cerrar Sesión
+        </a>
+    </div>
 
     <!-- Header del apartamento -->
     <div class="apartamento-header">

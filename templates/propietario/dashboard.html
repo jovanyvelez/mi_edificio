@@ -21,6 +21,7 @@
         box-shadow: 0 10px 40px rgba(16, 185, 129, 0.3);
         text-align: center;
         margin-bottom: 2rem;
+        position: relative;
     }
     
     .propietario-header h1 {
@@ -33,6 +34,31 @@
         font-size: 1.1rem;
         opacity: 0.9;
         margin: 0;
+    }
+    
+    /* Botón de logout */
+    .logout-btn {
+        position: absolute;
+        top: 1.5rem;
+        right: 1.5rem;
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 12px;
+        text-decoration: none;
+        font-size: 0.9rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .logout-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     }
     
     /* Grid de estadísticas */
@@ -104,6 +130,33 @@
         .dashboard-grid {
             grid-template-columns: 1fr;
         }
+        
+        .propietario-header {
+            padding: 2rem 1rem;
+            text-align: center;
+        }
+        
+        .logout-btn {
+            position: static;
+            display: inline-flex;
+            margin-bottom: 1rem;
+            font-size: 0.8rem;
+            padding: 0.4rem 0.8rem;
+        }
+        
+        .propietario-header h1 {
+            font-size: 1.5rem;
+        }
+        
+        .actions-grid {
+            grid-template-columns: 1fr;
+            gap: 0.8rem;
+        }
+        
+        .action-btn {
+            min-height: 100px;
+            padding: 1rem;
+        }
     }
     
     /* Panel de acciones rápidas */
@@ -124,7 +177,7 @@
     
     .actions-grid {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
         gap: 1rem;
     }
     
@@ -337,6 +390,11 @@
 
     <!-- Header del propietario -->
     <div class="propietario-header">
+        <a href="/logout" class="logout-btn">
+            <span>🚪</span>
+            Cerrar Sesión
+        </a>
+        
         {% if propietario %}
         <h1>Bienvenido, {{ propietario.nombre_completo }}</h1>
         <p class="propietario-subtitle">Panel de control de sus propiedades</p>
@@ -418,6 +476,11 @@
                     <span class="action-icon">📊</span>
                     <span class="action-label">Cartera Morosa<br>del Edificio</span>
                 </a>
+                
+                <!--a href="/propietario/ayuda" class="action-btn success">
+                    <span class="action-icon">📖</span>
+                    <span class="action-label">Guía de<br>Usuario</span>
+                </a-->
             </div>
         </div>
 
