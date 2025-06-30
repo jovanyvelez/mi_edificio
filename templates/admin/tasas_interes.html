@@ -1,0 +1,345 @@
+{% extends "base.html" %}
+
+{% block title %}Tasas de Interés{% endblock %}
+
+{% block header %}📈 Gestión de Tasas de Interés{% endblock %}
+
+{% block head %}
+<style>
+    .tasas-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 1rem;
+    }
+
+    .header-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 16px;
+        margin-bottom: 2rem;
+        box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+    }
+
+    .form-card {
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+        border: 1px solid #e2e8f0;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: #374151;
+    }
+
+    .form-input {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .form-input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 0.75rem 2rem;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 1rem;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+    }
+
+    .tasas-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .tasas-table th {
+        background: #f8fafc;
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+        color: #374151;
+        border-bottom: 2px solid #e2e8f0;
+    }
+
+    .tasas-table td {
+        padding: 1rem;
+        border-bottom: 1px solid #e2e8f0;
+        color: #6b7280;
+    }
+
+    .tasas-table tr:hover {
+        background: #f8fafc;
+    }
+
+    .alert {
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+        font-weight: 500;
+    }
+
+    .alert-success {
+        background: #ecfdf5;
+        color: #065f46;
+        border: 1px solid #a7f3d0;
+    }
+
+    .alert-error {
+        background: #fef2f2;
+        color: #991b1b;
+        border: 1px solid #fca5a5;
+    }
+
+    .info-card {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .info-card h4 {
+        color: #1d4ed8;
+        margin: 0 0 0.5rem 0;
+        font-size: 1rem;
+    }
+
+    .info-card p {
+        color: #3730a3;
+        margin: 0;
+        font-size: 0.9rem;
+    }
+
+    .next-period {
+        background: #f0f9ff;
+        border: 2px solid #0ea5e9;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        text-align: center;
+    }
+
+    .next-period h3 {
+        color: #0369a1;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .badge-period {
+        display: inline-block;
+        background: #0ea5e9;
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+
+    .navigation-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 500;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        transition: all 0.3s ease;
+        margin-bottom: 1rem;
+    }
+
+    .navigation-link:hover {
+        background: #f1f5f9;
+        transform: translateX(-2px);
+    }
+
+    @media (max-width: 768px) {
+        .tasas-container {
+            padding: 0.5rem;
+        }
+        
+        .header-section,
+        .form-card {
+            padding: 1rem;
+        }
+        
+        .tasas-table {
+            font-size: 0.875rem;
+        }
+        
+        .tasas-table th,
+        .tasas-table td {
+            padding: 0.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="tasas-container">
+    <!-- Navegación -->
+    <a href="/admin/finanzas" class="navigation-link">
+        ← Volver a Gestión Financiera
+    </a>
+
+    <!-- Header -->
+    <div class="header-section">
+        <h1 style="margin: 0 0 1rem 0; font-size: 2rem;">📈 Gestión de Tasas de Interés</h1>
+        <p style="margin: 0; opacity: 0.9; font-size: 1.1rem;">
+            Configuración de tasas de interés efectiva mensual para cálculo de intereses por mora
+        </p>
+    </div>
+
+    <!-- Alertas -->
+    {% if request.query_params.get('success') %}
+    <div class="alert alert-success">
+        ✅ Tasa de interés registrada exitosamente
+    </div>
+    {% endif %}
+
+    {% if request.query_params.get('error') == 'invalid_rate' %}
+    <div class="alert alert-error">
+        ❌ La tasa de interés debe ser un valor positivo y menor a 200% anual
+    </div>
+    {% endif %}
+
+    {% if request.query_params.get('error') == 'period_exists' %}
+    <div class="alert alert-error">
+        ❌ Ya existe una tasa registrada para el período calculado
+    </div>
+    {% endif %}
+
+    {% if request.query_params.get('error') == 'rate_too_high' %}
+    <div class="alert alert-error">
+        ❌ La tasa ingresada es demasiado alta. La tasa mensual resultante excede el límite permitido (10% mensual máximo)
+    </div>
+    {% endif %}
+
+    {% if request.query_params.get('error') == 'sequence_repaired' %}
+    <div class="alert alert-error">
+        🔧 Se detectó un problema técnico que fue reparado automáticamente. Por favor, intente registrar la tasa nuevamente.
+    </div>
+    {% endif %}
+
+    {% if request.query_params.get('error') == 'database' %}
+    <div class="alert alert-error">
+        ❌ Error al guardar la tasa de interés. Revise los logs del servidor para más detalles.
+    </div>
+    {% endif %}
+
+    <!-- Información sobre el cálculo -->
+    <div class="info-card">
+        <h4>ℹ️ Información sobre el cálculo</h4>
+        <p>
+            La tasa anual ingresada se convierte automáticamente a tasa efectiva mensual usando la fórmula: 
+            <strong>Tasa Mensual = (1 + Tasa Anual/100)^(1/12) - 1</strong>
+        </p>
+    </div>
+
+    <!-- Próximo período a registrar -->
+    <div class="next-period">
+        <h3>Próximo período a registrar</h3>
+        <span class="badge-period">{{ siguiente_mes_nombre }} {{ siguiente_año }}</span>
+    </div>
+
+    <!-- Formulario para nueva tasa -->
+    <div class="form-card">
+        <h2 style="margin: 0 0 1.5rem 0; color: #374151;">Registrar Nueva Tasa de Interés</h2>
+        
+        <form method="POST" action="/admin/tasas-interes">
+            <div class="form-group">
+                <label for="tasa_anual" class="form-label">
+                    Tasa de Interés Anual (%)
+                </label>
+                <input 
+                    type="number" 
+                    id="tasa_anual" 
+                    name="tasa_anual" 
+                    class="form-input"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    placeholder="Ej: 25.5"
+                    required
+                >
+                <small style="color: #6b7280; font-size: 0.875rem;">
+                    Ingrese la tasa anual como porcentaje (ej: 25.5 para 25.5% anual)
+                </small>
+            </div>
+
+            <button type="submit" class="btn-primary">
+                💾 Registrar Tasa para {{ siguiente_mes_nombre }} {{ siguiente_año }}
+            </button>
+        </form>
+    </div>
+
+    <!-- Historial de tasas -->
+    <div class="form-card">
+        <h2 style="margin: 0 0 1.5rem 0; color: #374151;">Historial de Tasas Registradas</h2>
+        
+        {% if tasas_existentes %}
+        <div style="overflow-x: auto;">
+            <table class="tasas-table">
+                <thead>
+                    <tr>
+                        <th>Período</th>
+                        <th>Año</th>
+                        <th>Mes</th>
+                        <th>Tasa Mensual (%)</th>
+                        <th>Tasa Anual Equivalente (%)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tasa in tasas_existentes %}
+                    <tr>
+                        <td>
+                            <strong>{{ nombres_meses[tasa.mes] }} {{ tasa.año }}</strong>
+                        </td>
+                        <td>{{ tasa.año }}</td>
+                        <td>{{ tasa.mes }}</td>
+                        <td>{{ "%.4f"|format(tasa.tasa_interes_mensual * 100) }}%</td>
+                        <td>{{ "%.2f"|format(((1 + tasa.tasa_interes_mensual) ** 12 - 1) * 100) }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 3rem; color: #6b7280;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">📊</div>
+            <h3 style="margin: 0 0 0.5rem 0;">No hay tasas registradas</h3>
+            <p style="margin: 0;">Registre la primera tasa de interés para comenzar</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -854,3 +854,169 @@ async def eliminar_registro_financiero(
         url=f"/admin/registros-financieros/{apartamento_id}?deleted=1",
         status_code=status.HTTP_302_FOUND
     )
+
+# Rutas para gestión de tasas de interés
+@router.get("/admin/tasas-interes", response_class=HTMLResponse)
+async def vista_tasas_interes(request: Request, session: Annotated[Session, Depends(db_manager.get_session)],
+                             User: Annotated[Usuario, Depends(admin_required_web)]):
+    """Vista para gestionar tasas de interés mensuales"""
+    
+    # Obtener todas las tasas registradas
+    tasas_existentes = session.exec(
+        select(TasaInteresMora)
+        .order_by(TasaInteresMora.año.desc(), TasaInteresMora.mes.desc())
+    ).all()
+    
+    # Calcular el siguiente período a registrar
+    siguiente_año = datetime.now().year
+    siguiente_mes = datetime.now().month
+    
+    if tasas_existentes:
+        ultima_tasa = tasas_existentes[0]
+        siguiente_año = ultima_tasa.año
+        siguiente_mes = ultima_tasa.mes + 1
+        
+        if siguiente_mes > 12:
+            siguiente_mes = 1
+            siguiente_año += 1
+    
+    # Nombres de meses para mostrar
+    nombres_meses = {
+        1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril", 5: "Mayo", 6: "Junio",
+        7: "Julio", 8: "Agosto", 9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
+    }
+    
+    return templates.TemplateResponse("admin/tasas_interes.html", {
+        "request": request,
+        "tasas_existentes": tasas_existentes,
+        "siguiente_año": siguiente_año,
+        "siguiente_mes": siguiente_mes,
+        "siguiente_mes_nombre": nombres_meses[siguiente_mes],
+        "nombres_meses": nombres_meses
+    })
+
+@router.post("/admin/tasas-interes", response_class=HTMLResponse)
+async def crear_tasa_interes(request: Request, session: Annotated[Session, Depends(db_manager.get_session)],
+                            User: Annotated[Usuario, Depends(admin_required_web)],
+                            tasa_anual: float = Form(...)):
+    """Crear nueva tasa de interés mensual"""
+    
+    try:
+        # Validar que la tasa anual sea positiva y razonable
+        if tasa_anual <= 0 or tasa_anual > 200:  # Máximo 200% anual
+            return RedirectResponse(
+                url="/admin/tasas-interes?error=invalid_rate",
+                status_code=status.HTTP_302_FOUND
+            )
+        
+        # Obtener la última tasa registrada para calcular el siguiente período
+        ultima_tasa = session.exec(
+            select(TasaInteresMora)
+            .order_by(TasaInteresMora.año.desc(), TasaInteresMora.mes.desc())
+        ).first()
+        
+        siguiente_año = datetime.now().year
+        siguiente_mes = datetime.now().month
+        
+        if ultima_tasa:
+            siguiente_año = ultima_tasa.año
+            siguiente_mes = ultima_tasa.mes + 1
+            
+            if siguiente_mes > 12:
+                siguiente_mes = 1
+                siguiente_año += 1
+        
+        print(f"🔍 Calculando tasa para período: {siguiente_mes:02d}/{siguiente_año}")
+        
+        # Verificar que no existe ya una tasa para este período
+        tasa_existente = session.exec(
+            select(TasaInteresMora)
+            .where(TasaInteresMora.año == siguiente_año)
+            .where(TasaInteresMora.mes == siguiente_mes)
+        ).first()
+        
+        if tasa_existente:
+            print(f"❌ Ya existe tasa para {siguiente_mes:02d}/{siguiente_año}")
+            return RedirectResponse(
+                url="/admin/tasas-interes?error=period_exists",
+                status_code=status.HTTP_302_FOUND
+            )
+        
+        # Convertir tasa anual a tasa efectiva mensual
+        # Fórmula: tasa_mensual = (1 + tasa_anual/100)^(1/12) - 1
+        from decimal import Decimal, ROUND_HALF_UP
+        
+        tasa_anual_decimal = tasa_anual / 100
+        tasa_mensual_efectiva = (1 + tasa_anual_decimal) ** (1/12) - 1
+        
+        print(f"📊 Tasa anual: {tasa_anual}% -> Tasa mensual: {tasa_mensual_efectiva * 100:.6f}%")
+        
+        # Convertir a Decimal con 4 decimales de precisión
+        # Validar que el valor no exceda los límites del campo (max_digits=5, decimal_places=4)
+        if tasa_mensual_efectiva >= 0.1:  # Si es >= 10% mensual, no cabe en el campo
+            print(f"❌ Tasa mensual demasiado alta: {tasa_mensual_efectiva * 100:.6f}%")
+            return RedirectResponse(
+                url="/admin/tasas-interes?error=rate_too_high",
+                status_code=status.HTTP_302_FOUND
+            )
+        
+        tasa_mensual_decimal = Decimal(str(tasa_mensual_efectiva)).quantize(
+            Decimal('0.0001'), rounding=ROUND_HALF_UP
+        )
+        
+        print(f"💾 Guardando tasa mensual: {tasa_mensual_decimal}")
+        
+        # Crear nuevo registro
+        nueva_tasa = TasaInteresMora(
+            año=siguiente_año,
+            mes=siguiente_mes,
+            tasa_interes_mensual=tasa_mensual_decimal
+        )
+        
+        session.add(nueva_tasa)
+        session.flush()  # Hacer flush antes del commit para capturar errores de BD
+        session.commit()
+        
+        print(f"✅ Tasa creada exitosamente: {siguiente_mes:02d}/{siguiente_año} con ID {nueva_tasa.id}")
+        
+        return RedirectResponse(
+            url="/admin/tasas-interes?success=1",
+            status_code=status.HTTP_302_FOUND
+        )
+        
+    except Exception as e:
+        session.rollback()  # Importante hacer rollback en caso de error
+        error_type = type(e).__name__
+        error_msg = str(e)
+        
+        print(f"❌ Error creando tasa de interés: {error_type}: {error_msg}")
+        
+        # Manejo específico para errores de secuencia
+        if "UniqueViolation" in error_type or "duplicate key value" in error_msg:
+            print("🔧 Detectado problema de secuencia. Intentando reparar...")
+            try:
+                # Reparar secuencia automáticamente
+                from sqlmodel import text
+                max_id_result = session.exec(text('SELECT MAX(id) FROM tasa_interes_mora')).first()
+                max_id = max_id_result[0] if max_id_result[0] else 0
+                new_seq_val = max_id + 1
+                
+                session.exec(text(f"SELECT setval('tasa_interes_mora_id_seq', {new_seq_val})"))
+                session.commit()
+                
+                print(f"✅ Secuencia reparada. Nuevo valor: {new_seq_val}")
+                
+                return RedirectResponse(
+                    url="/admin/tasas-interes?error=sequence_repaired",
+                    status_code=status.HTTP_302_FOUND
+                )
+            except Exception as repair_error:
+                print(f"❌ Error reparando secuencia: {repair_error}")
+        
+        import traceback
+        traceback.print_exc()
+        
+        return RedirectResponse(
+            url="/admin/tasas-interes?error=database",
+            status_code=status.HTTP_302_FOUND
+        )
