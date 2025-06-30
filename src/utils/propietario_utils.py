@@ -153,10 +153,75 @@ async def get_estado_cuenta_completo(propietario_id: int) -> Dict[str, Any]:
         }
 
 
+async def get_saldo_apartamento_sin_concepto_actual(apartamento_id: int, concepto_excluir: int, año_actual: int, mes_actual: int) -> List[Dict[str, Any]]:
+    """
+    Calcula el saldo para un apartamento específico excluyendo DÉBITOS de un concepto específico
+    para el año y mes actual al momento de la consulta.
+    """
+    # 1. Define la expresión CASE para asignar signo al monto
+    # Excluir DÉBITOS del concepto especificado para el año/mes actual
+    monto_con_signo = case(
+        # Si es DÉBITO del concepto a excluir en año/mes actual, no contarlo (0)
+        (
+            (rfa.tipo_movimiento == 'DEBITO') & 
+            (rfa.concepto_id == concepto_excluir) &
+            (rfa.año_aplicable == año_actual) &
+            (rfa.mes_aplicable == mes_actual),
+            0
+        ),
+        # Si es otro DÉBITO, sumarlo normalmente
+        (rfa.tipo_movimiento == 'DEBITO', rfa.monto),
+        # Si es CRÉDITO, restarlo
+        (rfa.tipo_movimiento == 'CREDITO', -rfa.monto),
+        else_=0
+    )
+
+    # 2. Construye la consulta completa
+    statement = select(
+        rfa.año_aplicable,
+        rfa.mes_aplicable,
+        func.coalesce(
+            func.sum(monto_con_signo),
+            0
+        ).label("saldo")
+    ).where(rfa.apartamento_id == apartamento_id).group_by(
+        rfa.año_aplicable, rfa.mes_aplicable
+    ).order_by(rfa.año_aplicable, rfa.mes_aplicable)     
+
+    # 3. Ejecuta la consulta y obtén el resultado
+    with db_manager.get_session_context() as session:
+        results = session.exec(statement).all()
+    
+    # 4. Convertir resultados a lista de diccionarios
+    saldos = []
+    saldo_acumulado = 0.0
+    
+    for dato in results:
+        saldo_acumulado += float(dato.saldo)
+        saldos.append({
+            "año": dato.año_aplicable,
+            "mes": dato.mes_aplicable,
+            "saldo_mes": float(dato.saldo),
+            "saldo_acumulado": saldo_acumulado
+        })
+    
+    return saldos
+
+
 async def get_cartera_morosa() -> List[Dict[str, Any]]:
     """
     Obtiene información de la cartera morosa de todo el edificio
+    Excluye DÉBITOS del concepto "1" para el año y mes actual al momento de la consulta.
+    
+    Esta exclusión permite que la cartera morosa no muestre como deuda los cargos
+    del concepto 1 (generalmente cuota de administración) del mes actual,
+    dando tiempo a los propietarios para realizar el pago antes de ser considerados morosos.
     """
+    # Obtener fecha actual
+    fecha_actual = datetime.now()
+    año_actual = fecha_actual.year
+    mes_actual = fecha_actual.month
+    
     with db_manager.get_session_context() as session:
         # Obtener todos los apartamentos con sus propietarios
         apartamentos = session.exec(
@@ -169,8 +234,13 @@ async def get_cartera_morosa() -> List[Dict[str, Any]]:
         
         for apartamento_row, propietario_row in apartamentos:
             if apartamento_row.id:
-                # Calcular saldo del apartamento
-                saldos = await get_saldo_apartamento(apartamento_row.id)
+                # Calcular saldo del apartamento excluyendo débitos del concepto 1 para año/mes actual
+                saldos = await get_saldo_apartamento_sin_concepto_actual(
+                    apartamento_row.id, 
+                    concepto_excluir=1, 
+                    año_actual=año_actual, 
+                    mes_actual=mes_actual
+                )
                 saldo_actual = saldos[-1]["saldo_acumulado"] if saldos else 0.0
                 
                 # Solo incluir si tiene saldo pendiente (mora)
