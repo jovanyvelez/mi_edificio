@@ -31,14 +31,14 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from sqlmodel import create_engine, Session, select, text
+from sqlmodel import Session, select
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 import logging
 from typing import Dict
 
 # Importaciones del proyecto
-from src.models.database import DATABASE_URL
+from src.models.database import db_manager
 from src.models import (
     Apartamento, Concepto, CuotaConfiguracion, 
     TasaInteresMora, RegistroFinancieroApartamento,
@@ -53,7 +53,7 @@ class GeneradorAutomatico:
     """
     
     def __init__(self):
-        self.engine = create_engine(DATABASE_URL)
+        self.engine = db_manager.get_engine()
         self.logger = self._setup_logger()
         
     def _setup_logger(self):
@@ -88,16 +88,17 @@ class GeneradorAutomatico:
                     self.logger.info(f"Mes {mes:02d}/{año} ya procesado")
                     return resultado
                 
-                # 2. Procesar cuotas ordinarias
-                self.logger.info(f"Generando cuotas ordinarias para {mes:02d}/{año}")
-                resultado_cuotas = self._generar_cuotas_ordinarias(session, año, mes)
-                resultado.update(resultado_cuotas)
-                
                 # 3. Procesar intereses moratorios
                 self.logger.info(f"Generando intereses moratorios para {mes:02d}/{año}")
                 resultado_intereses = self._generar_intereses_moratorios(session, año, mes)
                 resultado['intereses_generados'] = resultado_intereses['intereses_generados']
                 resultado['monto_intereses'] = resultado_intereses['monto_intereses']
+                
+                # 2. Procesar cuotas ordinarias
+                self.logger.info(f"Generando cuotas ordinarias para {mes:02d}/{año}")
+                resultado_cuotas = self._generar_cuotas_ordinarias(session, año, mes)
+                resultado.update(resultado_cuotas)
+                
                 
                 # 4. Aplicar saldos a favor al próximo período
                 self.logger.info(f"Aplicando saldos a favor al próximo período después de {mes:02d}/{año}")
@@ -145,62 +146,79 @@ class GeneradorAutomatico:
                 'SALDOS_FAVOR' in tipos_completados)
     
     def _generar_cuotas_ordinarias(self, session: Session, año: int, mes: int) -> Dict:
-        """Genera las cuotas ordinarias usando SQL directo para evitar problemas de enum"""
+        """Genera cuotas ordinarias basándose en la configuración usando SQLModel"""
         resultado = {
             'cuotas_generadas': 0,
             'monto_cuotas': Decimal('0.00')
         }
         
-        # Usar SQL directo con formato de string para evitar problemas de parámetros
-        sql_query = f"""
-            INSERT INTO registro_financiero_apartamento 
-            (apartamento_id, concepto_id, fecha_efectiva, monto, 
-             tipo_movimiento, descripcion_adicional, mes_aplicable, año_aplicable)
-            SELECT 
-                cc.apartamento_id,
-                1,  -- ID del concepto 'Cuota Ordinaria Administración'
-                DATE('{año}' || '-' || LPAD('{mes}'::text, 2, '0') || '-05'),  -- Día 5 de cada mes
-                cc.monto_cuota_ordinaria_mensual,
-                'DEBITO'::tipo_movimiento_enum,
-                'Cuota ordinaria ' || LPAD('{mes}'::text, 2, '0') || '/' || '{año}',
-                {mes},
-                {año}
-            FROM cuota_configuracion cc
-            WHERE cc.año = {año}
-            AND cc.mes = {mes}
-            AND NOT EXISTS (
-                SELECT 1 FROM registro_financiero_apartamento rfa
-                WHERE rfa.apartamento_id = cc.apartamento_id 
-                AND rfa.concepto_id = 1
-                AND rfa.año_aplicable = {año}
-                AND rfa.mes_aplicable = {mes}
-                AND rfa.descripcion_adicional LIKE 'Cuota ordinaria%'
-            )
-        """
-        
         try:
-            # Ejecutar la inserción
-            result = session.exec(text(sql_query))
-            resultado['cuotas_generadas'] = result.rowcount
+            # Obtener concepto de cuota ordinaria
+            concepto_cuota = session.exec(
+                select(Concepto).where(Concepto.id == 1)
+            ).first()
             
-            # Calcular el monto total generado
-            if resultado['cuotas_generadas'] > 0:
-                sql_monto = f"""
-                    SELECT COALESCE(SUM(monto), 0) as total
-                    FROM registro_financiero_apartamento
-                    WHERE año_aplicable = {año}
-                    AND mes_aplicable = {mes}
-                    AND tipo_movimiento = 'DEBITO'
-                    AND descripcion_adicional LIKE 'Cuota ordinaria%'
-                """
+            if not concepto_cuota:
+                self.logger.error("No se encontró el concepto 'Cuota Ordinaria Administración' (ID: 1)")
+                return resultado
+            
+            # Obtener configuraciones de cuotas para el período que no han sido procesadas
+            stmt = select(CuotaConfiguracion).where(
+                CuotaConfiguracion.año == año,
+                CuotaConfiguracion.mes == mes
+            )
+            configuraciones = session.exec(stmt).all()
+            
+            if not configuraciones:
+                self.logger.warning(f"No hay configuraciones de cuotas para {mes:02d}/{año}")
+                return resultado
+            
+            descripcion = f"Cuota ordinaria {mes:02d}/{año}"
+            fecha_efectiva = date(año, mes, 5)  # Día 5 de cada mes
+            
+            # Verificar cuáles apartamentos ya tienen la cuota generada
+            apartamentos_procesados = set()
+            stmt_existentes = select(RegistroFinancieroApartamento.apartamento_id).where(
+                RegistroFinancieroApartamento.concepto_id == 1,
+                RegistroFinancieroApartamento.año_aplicable == año,
+                RegistroFinancieroApartamento.mes_aplicable == mes,
+                RegistroFinancieroApartamento.descripcion_adicional.like('Cuota ordinaria%')
+            )
+            apartamentos_existentes = session.exec(stmt_existentes).all()
+            apartamentos_procesados.update(apartamentos_existentes)
+            
+            # Generar cuotas para apartamentos no procesados
+            cuotas_generadas = 0
+            monto_total = Decimal('0.00')
+            
+            for config in configuraciones:
+                if config.apartamento_id not in apartamentos_procesados:
+                    # Crear registro financiero
+                    registro = RegistroFinancieroApartamento(
+                        apartamento_id=config.apartamento_id,
+                        concepto_id=1,  # Cuota Ordinaria Administración
+                        fecha_efectiva=fecha_efectiva,
+                        monto=config.monto_cuota_ordinaria_mensual,
+                        tipo_movimiento='DEBITO',
+                        descripcion_adicional=descripcion,
+                        mes_aplicable=mes,
+                        año_aplicable=año
+                    )
+                    session.add(registro)
+                    cuotas_generadas += 1
+                    monto_total += config.monto_cuota_ordinaria_mensual
+            
+            if cuotas_generadas > 0:
+                session.commit()
+                resultado['cuotas_generadas'] = cuotas_generadas
+                resultado['monto_cuotas'] = monto_total
                 
-                monto_result = session.exec(text(sql_monto)).first()
-                if monto_result:
-                    resultado['monto_cuotas'] = Decimal(str(monto_result.total))
-            
-            self.logger.info(f"Cuotas ordinarias: {resultado['cuotas_generadas']} generadas por ${resultado['monto_cuotas']:,.2f}")
+                self.logger.info(f"Cuotas ordinarias: {resultado['cuotas_generadas']} generadas por ${resultado['monto_cuotas']:,.2f}")
+            else:
+                self.logger.info("No hay cuotas ordinarias nuevas para generar")
             
         except Exception as e:
+            session.rollback()
             self.logger.error(f"Error generando cuotas ordinarias: {e}")
             raise
         
@@ -208,134 +226,127 @@ class GeneradorAutomatico:
     
     def _generar_intereses_moratorios(self, session: Session, año: int, mes: int) -> Dict:
         """
-        Genera intereses moratorios sobre saldos pendientes al final del mes anterior.
+        Genera intereses moratorios de forma simplificada.
         
-        LÓGICA: Si un apartamento tiene saldo pendiente al finalizar el mes anterior,
-        se genera interés en el mes actual. Esto permite que el propietario tenga
-        todo el mes para pagar sin generar intereses, pero una vez finalizado el mes,
-        cualquier saldo pendiente genera interés moratorio.
-        
-        Ejemplo: DÉBITO generado el 29 de enero -> si no se paga antes del 31 de enero,
-        genera interés en febrero.
+        LÓGICA SIMPLIFICADA (según propuesta del usuario):
+        1. Buscar apartamentos con saldo DÉBITO
+        2. Obtener tasa de interés vigente del mes anterior
+        3. Calcular y registrar intereses con concepto 3
         """
+        from sqlmodel import case, func
+        from src.models import RegistroFinancieroApartamento as rfa
+        
         resultado = {
             'intereses_generados': 0,
             'monto_intereses': Decimal('0.00')
         }
         
-        # Obtener la tasa de interés vigente para el mes anterior
-        # Para calcular intereses de junio, usamos la tasa de mayo
-        mes_tasa = mes - 1 if mes > 1 else 12
-        año_tasa = año if mes > 1 else año - 1
-        
-        stmt_tasa = select(TasaInteresMora).where(
-            TasaInteresMora.año == año_tasa,
-            TasaInteresMora.mes == mes_tasa
-        ).limit(1)
-        
-        tasa_record = session.exec(stmt_tasa).first()
-        if not tasa_record:
-            self.logger.warning(f"No se encontró tasa de interés para {mes_tasa:02d}/{año_tasa}")
-            return resultado
-        
-        self.logger.info(f"Tasa de interés encontrada: {tasa_record.tasa_interes_mensual} para {mes_tasa:02d}/{año_tasa}")
-        
-        # Obtener concepto de interés
-        stmt_concepto = select(Concepto).where(
-            Concepto.nombre.ilike('%interés%') | Concepto.nombre.ilike('%mora%')
-        ).limit(1)
-        
-        concepto_interes = session.exec(stmt_concepto).first()
-        if not concepto_interes:
-            self.logger.warning("No se encontró concepto de interés")
-            return resultado
-        
-        self.logger.info(f"Concepto de interés encontrado: {concepto_interes.nombre} (ID: {concepto_interes.id})")
-        
-        # Calcular fecha límite (último día del mes anterior)
-        if mes == 1:
-            fecha_limite = f"{año-1}-12-31"
-        else:
-            # Usar el último día del mes anterior
-            import calendar
-            ultimo_dia = calendar.monthrange(año, mes-1)[1]
-            fecha_limite = f"{año}-{mes-1:02d}-{ultimo_dia}"
-        
-        # SQL CORREGIDO - Generar intereses sobre cualquier saldo pendiente al final del mes anterior
-        tasa_porcentaje = float(tasa_record.tasa_interes_mensual) * 100
-        
-        sql_intereses = f"""
-            WITH saldos_apartamento AS (
-                SELECT 
-                    rfa.apartamento_id,
-                    SUM(CASE 
-                        WHEN rfa.tipo_movimiento = 'DEBITO' THEN rfa.monto 
-                        ELSE -rfa.monto 
-                    END) as saldo_pendiente
-                FROM registro_financiero_apartamento rfa
-                LEFT JOIN concepto c ON rfa.concepto_id = c.id
-                WHERE rfa.fecha_efectiva <= '{fecha_limite}'
-                -- Excluir conceptos de interés del cálculo base para evitar interés sobre interés
-                AND (c.nombre IS NULL OR (
-                    c.nombre NOT ILIKE '%interés%' AND 
-                    c.nombre NOT ILIKE '%mora%' AND
-                    c.nombre NOT ILIKE '%intereses%'
-                ))
-                GROUP BY rfa.apartamento_id
-                HAVING SUM(CASE 
-                    WHEN rfa.tipo_movimiento = 'DEBITO' THEN rfa.monto 
-                    ELSE -rfa.monto 
-                END) > 0.01  -- Solo saldos positivos (deudas)
-            )
-            INSERT INTO registro_financiero_apartamento 
-            (apartamento_id, concepto_id, fecha_efectiva, monto, 
-             tipo_movimiento, descripcion_adicional, mes_aplicable, año_aplicable)
-            SELECT 
-                sa.apartamento_id,
-                {concepto_interes.id},
-                DATE('{año}' || '-' || LPAD('{mes}'::text, 2, '0') || '-28'),
-                ROUND(sa.saldo_pendiente * ({tasa_porcentaje} / 100), 2),
-                'DEBITO'::tipo_movimiento_enum,
-                'Interés moratorio automático - ' || LPAD('{mes}'::text, 2, '0') || '/' || '{año}' ||
-                ' (Base: $' || ROUND(sa.saldo_pendiente, 2) || 
-                ', Tasa: {tasa_porcentaje}%, Saldo al {fecha_limite})',
-                {mes},
-                {año}
-            FROM saldos_apartamento sa
-            WHERE NOT EXISTS (
-                SELECT 1 FROM registro_financiero_apartamento rfa
-                WHERE rfa.apartamento_id = sa.apartamento_id 
-                AND rfa.concepto_id = {concepto_interes.id}
-                AND rfa.año_aplicable = {año}
-                AND rfa.mes_aplicable = {mes}
-                AND rfa.descripcion_adicional LIKE 'Interés moratorio automático%'
-            )
-        """
-        
         try:
-            # Ejecutar la inserción
-            result = session.exec(text(sql_intereses))
-            resultado['intereses_generados'] = result.rowcount
+            # PASO A: Buscar apartamentos con saldo DÉBITO hasta el final del mes anterior
+            # Para procesar julio 2025, considerar movimientos hasta el 30 de junio 2025
+            if mes == 1:
+                mes_limite = 12
+                año_limite = año - 1
+            else:
+                mes_limite = mes - 1
+                año_limite = año
             
-            # Calcular monto total de intereses
-            if resultado['intereses_generados'] > 0:
-                sql_monto = f"""
-                    SELECT COALESCE(SUM(monto), 0) as total
-                    FROM registro_financiero_apartamento
-                    WHERE año_aplicable = {año}
-                    AND mes_aplicable = {mes}
-                    AND concepto_id = {concepto_interes.id}
-                    AND descripcion_adicional LIKE 'Interés moratorio automático%'
-                """
+            # Calcular la fecha límite (último día del mes anterior)
+            import calendar
+            ultimo_dia = calendar.monthrange(año_limite, mes_limite)[1]
+            fecha_limite = f"{año_limite}-{mes_limite:02d}-{ultimo_dia}"
+            
+            self.logger.info(f"Calculando saldos hasta: {fecha_limite}")
+            
+            monto_con_signo = case(
+                (rfa.tipo_movimiento == 'DEBITO', rfa.monto),
+                (rfa.tipo_movimiento == 'CREDITO', -rfa.monto),
+                else_=0
+            )
+            
+            statement = select(
+                rfa.apartamento_id,
+                func.coalesce(func.sum(monto_con_signo), 0).label("saldo")
+            ).group_by(
+                rfa.apartamento_id
+            ).having(
+                func.coalesce(func.sum(monto_con_signo), 0) > 0  # Solo saldos positivos (deudas)
+            ).order_by(
+                rfa.apartamento_id
+            )
+            
+            apartamentos_con_deuda = session.exec(statement).all()
+            
+            if not apartamentos_con_deuda:
+                self.logger.info("No hay apartamentos con saldo deudor para calcular intereses")
+                return resultado
+            
+            # PASO B: Obtener tasa de interés vigente del mes anterior
+            # Para calcular intereses de julio 2025, usar tasa de junio 2025
+            if mes == 1:
+                mes_tasa = 12
+                año_tasa = año - 1
+            else:
+                mes_tasa = mes - 1
+                año_tasa = año
+            
+            stmt_tasa = select(TasaInteresMora).where(
+                TasaInteresMora.año == año_tasa,
+                TasaInteresMora.mes == mes_tasa
+            ).limit(1)
+            
+            tasa_record = session.exec(stmt_tasa).first()
+            if not tasa_record:
+                self.logger.warning(f"No se encontró tasa de interés para {mes_tasa:02d}/{año_tasa}")
+                return resultado
+            
+            tasa_interes = float(tasa_record.tasa_interes_mensual)
+            self.logger.info(f"Tasa de interés aplicada: {tasa_interes} del período {tasa_record.mes:02d}/{tasa_record.año} (mes anterior)")
+            
+            # PASO C: Verificar que no existan intereses ya calculados para este período
+            intereses_existentes = session.exec(
+                select(RegistroFinancieroApartamento)
+                .where(RegistroFinancieroApartamento.concepto_id == 3)  # Concepto 3 = Intereses
+                .where(RegistroFinancieroApartamento.año_aplicable == año)
+                .where(RegistroFinancieroApartamento.mes_aplicable == mes)
+                .where(RegistroFinancieroApartamento.tipo_movimiento == 'DEBITO')
+            ).first()
+            
+            if intereses_existentes:
+                self.logger.info(f"Ya existen intereses calculados para {mes:02d}/{año}")
+                return resultado
+            
+            # PASO D: Calcular y registrar intereses para cada apartamento con deuda
+            for apto_id, saldo in apartamentos_con_deuda:
+                interes_calculado = float(saldo) * tasa_interes
                 
-                monto_result = session.exec(text(sql_monto)).first()
-                if monto_result:
-                    resultado['monto_intereses'] = Decimal(str(monto_result.total))
+                if interes_calculado > 0.01:  # Solo registrar si el interés es significativo
+                    nuevo_interes = RegistroFinancieroApartamento(
+                        apartamento_id=apto_id,
+                        concepto_id=3,  # Concepto 3 = Intereses por mora
+                        tipo_movimiento='DEBITO',
+                        monto=round(interes_calculado, 2),
+                        fecha_efectiva=date(año, mes, 28),  # Día 28 del mes actual
+                        año_aplicable=año,
+                        mes_aplicable=mes,
+                        descripcion_adicional=f"Interés moratorio {mes:02d}/{año} - Saldo al {fecha_limite}: ${saldo:,.2f} - Tasa {mes_tasa:02d}/{año_tasa}: {tasa_interes*100:.2f}%",
+                        referencia_pago=f"INT-AUTO-{año}{mes:02d}",
+                        fecha_creacion=datetime.now()
+                    )
+                    
+                    session.add(nuevo_interes)
+                    resultado['intereses_generados'] += 1
+                    resultado['monto_intereses'] += Decimal(str(interes_calculado))
             
-            self.logger.info(f"Intereses moratorios: {resultado['intereses_generados']} generados por ${resultado['monto_intereses']:,.2f}")
-            
+            if resultado['intereses_generados'] > 0:
+                session.commit()
+                self.logger.info(f"Intereses generados: {resultado['intereses_generados']} por ${resultado['monto_intereses']:,.2f}")
+            else:
+                self.logger.info("No se generaron intereses (montos muy pequeños)")
+                
         except Exception as e:
             self.logger.error(f"Error generando intereses moratorios: {e}")
+            session.rollback()
             raise
         
         return resultado
@@ -387,72 +398,90 @@ class GeneradorAutomatico:
         self.logger.info(f"Concepto para aplicación de saldo: {concepto_aplicacion.nombre} (ID: {concepto_aplicacion.id})")
         
         # SQL para identificar apartamentos con saldo a favor después del procesamiento del mes actual
-        sql_saldos_favor = f"""
-            WITH saldos_actuales AS (
-                SELECT 
-                    rfa.apartamento_id,
-                    SUM(CASE 
-                        WHEN rfa.tipo_movimiento = 'CREDITO' THEN rfa.monto 
-                        ELSE -rfa.monto 
-                    END) as saldo_a_favor
-                FROM registro_financiero_apartamento rfa
-                WHERE rfa.fecha_efectiva <= DATE('{año}' || '-' || LPAD('{mes}'::text, 2, '0') || '-28')
-                GROUP BY rfa.apartamento_id
-                HAVING SUM(CASE 
-                    WHEN rfa.tipo_movimiento = 'CREDITO' THEN rfa.monto 
-                    ELSE -rfa.monto 
-                END) > 0.01  -- Solo saldos a favor significativos (más de 1 centavo)
-            )
-            INSERT INTO registro_financiero_apartamento 
-            (apartamento_id, concepto_id, fecha_efectiva, monto, 
-             tipo_movimiento, descripcion_adicional, mes_aplicable, año_aplicable)
-            SELECT 
-                sa.apartamento_id,
-                {concepto_aplicacion.id},
-                DATE('{año_siguiente}' || '-' || LPAD('{mes_siguiente}'::text, 2, '0') || '-01'),
-                ROUND(sa.saldo_a_favor, 2),
-                'CREDITO'::tipo_movimiento_enum,
-                'Aplicación automática saldo a favor de ' || LPAD('{mes}'::text, 2, '0') || '/' || '{año}' ||
-                ' aplicado a ' || LPAD('{mes_siguiente}'::text, 2, '0') || '/' || '{año_siguiente}' ||
-                ' (Saldo: $' || ROUND(sa.saldo_a_favor, 2) || ')',
-                {mes_siguiente},
-                {año_siguiente}
-            FROM saldos_actuales sa
-            WHERE NOT EXISTS (
-                SELECT 1 FROM registro_financiero_apartamento rfa
-                WHERE rfa.apartamento_id = sa.apartamento_id 
-                AND rfa.concepto_id = {concepto_aplicacion.id}
-                AND rfa.año_aplicable = {año_siguiente}
-                AND rfa.mes_aplicable = {mes_siguiente}
-                AND rfa.descripcion_adicional LIKE 'Aplicación automática saldo a favor%'
-                AND rfa.descripcion_adicional LIKE '%de {mes:02d}/{año}%'
-            )
-        """
-        
         try:
-            # Ejecutar la inserción
-            result = session.exec(text(sql_saldos_favor))
-            resultado['saldos_aplicados'] = result.rowcount
+            # Fecha límite para cálculo de saldos (día 28 del mes)
+            fecha_limite = date(año, mes, 28)
             
-            # Calcular monto total aplicado
-            if resultado['saldos_aplicados'] > 0:
-                sql_monto = f"""
-                    SELECT COALESCE(SUM(monto), 0) as total
-                    FROM registro_financiero_apartamento
-                    WHERE año_aplicable = {año_siguiente}
-                    AND mes_aplicable = {mes_siguiente}
-                    AND concepto_id = {concepto_aplicacion.id}
-                    AND descripcion_adicional LIKE 'Aplicación automática saldo a favor%'
-                    AND descripcion_adicional LIKE '%de {mes:02d}/{año}%'
-                """
+            # Calcular saldos por apartamento usando SQLModel
+            from sqlmodel import func, case
+            
+            # Expresión para calcular el saldo (créditos - débitos)
+            saldo_expression = func.sum(
+                case(
+                    (RegistroFinancieroApartamento.tipo_movimiento == 'CREDITO', RegistroFinancieroApartamento.monto),
+                    else_=-RegistroFinancieroApartamento.monto
+                )
+            ).label('saldo_a_favor')
+            
+            stmt_saldos = select(
+                RegistroFinancieroApartamento.apartamento_id,
+                saldo_expression
+            ).where(
+                RegistroFinancieroApartamento.fecha_efectiva <= fecha_limite
+            ).group_by(
+                RegistroFinancieroApartamento.apartamento_id
+            ).having(
+                saldo_expression > Decimal('0.01')
+            )
+            
+            apartamentos_con_saldo = session.exec(stmt_saldos).all()
+            
+            if not apartamentos_con_saldo:
+                self.logger.info("No hay apartamentos con saldo a favor para aplicar")
+                return resultado
+            
+            # Verificar cuáles aplicaciones ya existen para evitar duplicados
+            descripcion_patron = f"Aplicación automática saldo a favor de {mes:02d}/{año}"
+            stmt_existentes = select(RegistroFinancieroApartamento.apartamento_id).where(
+                RegistroFinancieroApartamento.concepto_id == concepto_aplicacion.id,
+                RegistroFinancieroApartamento.año_aplicable == año_siguiente,
+                RegistroFinancieroApartamento.mes_aplicable == mes_siguiente,
+                RegistroFinancieroApartamento.descripcion_adicional.like('Aplicación automática saldo a favor%'),
+                RegistroFinancieroApartamento.descripcion_adicional.like(f'%de {mes:02d}/{año}%')
+            )
+            apartamentos_ya_procesados = set(session.exec(stmt_existentes).all())
+            
+            # Generar aplicaciones para apartamentos no procesados
+            saldos_aplicados = 0
+            monto_total_aplicado = Decimal('0.00')
+            fecha_aplicacion = date(año_siguiente, mes_siguiente, 1)
+            
+            for row in apartamentos_con_saldo:
+                apartamento_id = row.apartamento_id
+                saldo_a_favor = Decimal(str(row.saldo_a_favor)).quantize(Decimal('0.01'))
                 
-                monto_result = session.exec(text(sql_monto)).first()
-                if monto_result:
-                    resultado['monto_aplicado'] = Decimal(str(monto_result.total))
+                if apartamento_id not in apartamentos_ya_procesados:
+                    descripcion = (
+                        f"Aplicación automática saldo a favor de {mes:02d}/{año} "
+                        f"aplicado a {mes_siguiente:02d}/{año_siguiente} "
+                        f"(Saldo: ${saldo_a_favor})"
+                    )
+                    
+                    registro = RegistroFinancieroApartamento(
+                        apartamento_id=apartamento_id,
+                        concepto_id=concepto_aplicacion.id,
+                        fecha_efectiva=fecha_aplicacion,
+                        monto=saldo_a_favor,
+                        tipo_movimiento='CREDITO',
+                        descripcion_adicional=descripcion,
+                        mes_aplicable=mes_siguiente,
+                        año_aplicable=año_siguiente
+                    )
+                    session.add(registro)
+                    saldos_aplicados += 1
+                    monto_total_aplicado += saldo_a_favor
             
-            self.logger.info(f"Saldos a favor: {resultado['saldos_aplicados']} aplicados por ${resultado['monto_aplicado']:,.2f} al período {mes_siguiente:02d}/{año_siguiente}")
+            if saldos_aplicados > 0:
+                session.commit()
+                resultado['saldos_aplicados'] = saldos_aplicados
+                resultado['monto_aplicado'] = monto_total_aplicado
+                
+                self.logger.info(f"Saldos a favor: {resultado['saldos_aplicados']} aplicados por ${resultado['monto_aplicado']:,.2f} al período {mes_siguiente:02d}/{año_siguiente}")
+            else:
+                self.logger.info("No hay nuevos saldos a favor para aplicar")
             
         except Exception as e:
+            session.rollback()
             self.logger.error(f"Error aplicando saldos a favor: {e}")
             # No hacer raise para no afectar el procesamiento principal
             pass
@@ -507,64 +536,298 @@ class GeneradorAutomatico:
             self.logger.error(f"Error actualizando control de procesamiento: {e}")
             # No fallar todo el proceso por esto
             pass
+    
+    def procesar_mes_simulacion(self, año: int, mes: int) -> Dict:
+        """
+        Simula el procesamiento de un mes mostrando resultados en consola SIN grabar datos.
+        Útil para verificar cálculos antes de ejecutar el proceso real.
+        """
+        print(f"\n🧪 SIMULACIÓN DE PROCESAMIENTO - {mes:02d}/{año}")
+        print("=" * 60)
+        
+        resultado = {
+            'año': año,
+            'mes': mes,
+            'cuotas_generadas': 0,
+            'intereses_generados': 0,
+            'monto_cuotas': Decimal('0.00'),
+            'monto_intereses': Decimal('0.00'),
+            'simulacion': True
+        }
+        
+        with Session(self.engine) as session:
+            try:
+                # 1. SIMULACIÓN: Verificar configuraciones de cuotas
+                print("\n📋 1. VERIFICACIÓN DE CONFIGURACIONES")
+                configuraciones = session.exec(
+                    select(CuotaConfiguracion)
+                    .where(CuotaConfiguracion.año == año)
+                    .where(CuotaConfiguracion.mes == mes)
+                ).all()
+                
+                if configuraciones:
+                    print(f"✅ Encontradas {len(configuraciones)} configuraciones de cuotas:")
+                    total_cuotas = sum(config.monto_cuota_ordinaria_mensual for config in configuraciones)
+                    for config in configuraciones:
+                        print(f"   - Apartamento {config.apartamento_id}: ${config.monto_cuota_ordinaria_mensual:,.2f}")
+                    print(f"💰 Total a generar en cuotas: ${total_cuotas:,.2f}")
+                    resultado['cuotas_generadas'] = len(configuraciones)
+                    resultado['monto_cuotas'] = Decimal(str(total_cuotas))
+                else:
+                    print("❌ No hay configuraciones de cuotas para este período")
+                
+                # 2. SIMULACIÓN: Calcular intereses
+                print("\n💸 2. CÁLCULO DE INTERESES (SIMULACIÓN)")
+                intereses_simulados = self._simular_intereses(session, año, mes)
+                resultado['intereses_generados'] = intereses_simulados['cantidad']
+                resultado['monto_intereses'] = intereses_simulados['monto']
+                
+                # 3. SIMULACIÓN: Saldos a favor
+                print("\n💳 3. SALDOS A FAVOR (SIMULACIÓN)")
+                self._simular_saldos_a_favor(session, año, mes)
+                
+                print("\n✅ SIMULACIÓN COMPLETADA")
+                print("=" * 60)
+                print(f"📊 RESUMEN:")
+                print(f"   Cuotas a generar: {resultado['cuotas_generadas']} (${resultado['monto_cuotas']:,.2f})")
+                print(f"   Intereses a generar: {resultado['intereses_generados']} (${resultado['monto_intereses']:,.2f})")
+                print(f"   Total impacto: ${resultado['monto_cuotas'] + resultado['monto_intereses']:,.2f}")
+                print("\n⚠️  ESTO ES SOLO UNA SIMULACIÓN - NO SE GRABARON DATOS")
+                
+            except Exception as e:
+                print(f"❌ Error en simulación: {e}")
+                resultado['error'] = str(e)
+        
+        return resultado
+    
+    def _simular_intereses(self, session: Session, año: int, mes: int) -> Dict:
+        """Simula el cálculo de intereses sin grabar datos"""
+        from sqlmodel import case, func
+        from src.models import RegistroFinancieroApartamento as rfa
+        
+        resultado_simulacion = {'cantidad': 0, 'monto': Decimal('0.00')}
+        
+        try:
+            # PASO A: Buscar apartamentos con saldo DÉBITO hasta el final del mes anterior
+            # Para procesar julio 2025, considerar movimientos hasta el 30 de junio 2025
+            if mes == 1:
+                mes_limite = 12
+                año_limite = año - 1
+            else:
+                mes_limite = mes - 1
+                año_limite = año
+            
+            # Calcular la fecha límite (último día del mes anterior)
+            import calendar
+            ultimo_dia = calendar.monthrange(año_limite, mes_limite)[1]
+            fecha_limite = f"{año_limite}-{mes_limite:02d}-{ultimo_dia}"
+            
+            print(f"   📅 Calculando saldos hasta: {fecha_limite}")
+            
+            monto_con_signo = case(
+                (rfa.tipo_movimiento == 'DEBITO', rfa.monto),
+                (rfa.tipo_movimiento == 'CREDITO', -rfa.monto),
+                else_=0
+            )
+            
+            statement = select(
+                rfa.apartamento_id,
+                func.coalesce(func.sum(monto_con_signo), 0).label("saldo")
+            ).where(
+                rfa.fecha_efectiva <= fecha_limite  # Solo hasta el final del mes anterior
+            ).group_by(
+                rfa.apartamento_id
+            ).having(
+                func.coalesce(func.sum(monto_con_signo), 0) > 0
+            ).order_by(
+                rfa.apartamento_id
+            )
+            
+            apartamentos_con_deuda = session.exec(statement).all()
+            
+            if not apartamentos_con_deuda:
+                print("   ✅ No hay apartamentos con saldo deudor")
+                return resultado_simulacion
+            
+            # PASO B: Obtener tasa de interés del mes anterior
+            # Para procesar julio 2025, usar tasa de junio 2025
+            if mes == 1:
+                mes_tasa = 12
+                año_tasa = año - 1
+            else:
+                mes_tasa = mes - 1
+                año_tasa = año
+            
+            stmt_tasa = select(TasaInteresMora).where(
+                TasaInteresMora.año == año_tasa,
+                TasaInteresMora.mes == mes_tasa
+            ).limit(1)
+            
+            tasa_record = session.exec(stmt_tasa).first()
+            if not tasa_record:
+                print(f"   ❌ No se encontró tasa de interés para {mes_tasa:02d}/{año_tasa}")
+                return resultado_simulacion
+            
+            tasa_interes = float(tasa_record.tasa_interes_mensual)
+            print(f"   📈 Tasa aplicada: {tasa_interes*100:.2f}% del período {tasa_record.mes:02d}/{tasa_record.año} (mes anterior)")
+            
+            # PASO C: Verificar intereses existentes
+            intereses_existentes = session.exec(
+                select(RegistroFinancieroApartamento)
+                .where(RegistroFinancieroApartamento.concepto_id == 3)
+                .where(RegistroFinancieroApartamento.año_aplicable == año)
+                .where(RegistroFinancieroApartamento.mes_aplicable == mes)
+                .where(RegistroFinancieroApartamento.tipo_movimiento == 'DEBITO')
+            ).first()
+            
+            if intereses_existentes:
+                print(f"   ⚠️  Ya existen intereses calculados para {mes:02d}/{año}")
+                return resultado_simulacion
+            
+            # PASO D: Simular cálculo de intereses
+            print(f"   📋 Apartamentos con deuda encontrados: {len(apartamentos_con_deuda)}")
+            print("   📊 Detalles del cálculo:")
+            
+            total_intereses = Decimal('0.00')
+            apartamentos_con_interes = 0
+            
+            for apto_id, saldo in apartamentos_con_deuda:
+                interes_calculado = float(saldo) * tasa_interes
+                
+                if interes_calculado > 0.01:
+                    print(f"      Apto {apto_id}: Saldo ${saldo:,.2f} → Interés ${interes_calculado:.2f}")
+                    total_intereses += Decimal(str(interes_calculado))
+                    apartamentos_con_interes += 1
+                else:
+                    print(f"      Apto {apto_id}: Saldo ${saldo:,.2f} → Interés insignificante (${interes_calculado:.2f})")
+            
+            resultado_simulacion['cantidad'] = apartamentos_con_interes
+            resultado_simulacion['monto'] = total_intereses
+            
+            print(f"   💰 Total intereses a generar: {apartamentos_con_interes} registros por ${total_intereses:,.2f}")
+            
+        except Exception as e:
+            print(f"   ❌ Error simulando intereses: {e}")
+        
+        return resultado_simulacion
+    
+    def _simular_saldos_a_favor(self, session: Session, año: int, mes: int):
+        """Simula la aplicación de saldos a favor sin grabar datos"""
+        from sqlmodel import case, func
+        from src.models import RegistroFinancieroApartamento as rfa
+        
+        try:
+            # Calcular próximo período
+            if mes == 12:
+                mes_siguiente = 1
+                año_siguiente = año + 1
+            else:
+                mes_siguiente = mes + 1
+                año_siguiente = año
+            
+            print(f"   🔄 Período destino: {mes_siguiente:02d}/{año_siguiente}")
+            
+            # Buscar apartamentos con saldo a favor
+            monto_con_signo = case(
+                (rfa.tipo_movimiento == 'CREDITO', rfa.monto),
+                (rfa.tipo_movimiento == 'DEBITO', -rfa.monto),
+                else_=0
+            )
+            
+            statement = select(
+                rfa.apartamento_id,
+                func.coalesce(func.sum(monto_con_signo), 0).label("saldo_favor")
+            ).group_by(
+                rfa.apartamento_id
+            ).having(
+                func.coalesce(func.sum(monto_con_signo), 0) > 0.01
+            ).order_by(
+                rfa.apartamento_id
+            )
+            
+            apartamentos_con_credito = session.exec(statement).all()
+            
+            if apartamentos_con_credito:
+                print(f"   📋 Apartamentos con saldo a favor: {len(apartamentos_con_credito)}")
+                total_saldos = Decimal('0.00')
+                
+                for apto_id, saldo_favor in apartamentos_con_credito:
+                    print(f"      Apto {apto_id}: Crédito de ${saldo_favor:,.2f} → Se aplicaría a {mes_siguiente:02d}/{año_siguiente}")
+                    total_saldos += Decimal(str(saldo_favor))
+                
+                print(f"   💳 Total saldos a favor a aplicar: ${total_saldos:,.2f}")
+            else:
+                print("   ✅ No hay apartamentos con saldo a favor")
+                
+        except Exception as e:
+            print(f"   ❌ Error simulando saldos a favor: {e}")
+
+
+
+
+def generar_cargos_mensuales(año: int, mes: int, forzar: bool = False) -> Dict:
+    """
+    Función de conveniencia para generar cargos mensuales.
+    
+    Args:
+        año: Año a procesar
+        mes: Mes a procesar (1-12)
+        forzar: Si True, procesa incluso si ya fue procesado antes
+        
+    Returns:
+        Diccionario con resultados del procesamiento
+    """
+    generador = GeneradorAutomatico()
+    return generador.procesar_mes(año, mes, forzar)
+
+
+def simular_cargos_mensuales(año: int, mes: int) -> Dict:
+    """
+    Función de conveniencia para simular cargos mensuales SIN grabar datos.
+    
+    Args:
+        año: Año a procesar
+        mes: Mes a procesar (1-12)
+        
+    Returns:
+        Diccionario con resultados de la simulación
+    """
+    generador = GeneradorAutomatico()
+    return generador.procesar_mes_simulacion(año, mes)
 
 
 def main():
-    """Función principal"""
-    print("🚀 Generador Automático V3 - Funcional")
+    """Función principal para ejecutar desde línea de comandos"""
+    print("🚀 Generador Automático de Cargos Financieros")
     
-    try:
-        generador = GeneradorAutomaticoV3()
-        
-        if len(sys.argv) >= 3:
-            try:
-                año = int(sys.argv[1])
-                mes = int(sys.argv[2])
-                forzar = len(sys.argv) > 3 and str(sys.argv[3]).lower() in ['true', '1', 'forzar']
-                
+    if len(sys.argv) >= 3:
+        try:
+            año = int(sys.argv[1])
+            mes = int(sys.argv[2])
+            forzar = len(sys.argv) > 3 and str(sys.argv[3]).lower() in ['true', '1', 'forzar']
+            
+            generador = GeneradorAutomatico()
+            
+            # Si se pasa 'simular' como cuarto parámetro, hacer simulación
+            if len(sys.argv) > 3 and str(sys.argv[3]).lower() == 'simular':
+                print(f"🧪 Modo simulación activado para {mes:02d}/{año}")
+                resultado = generador.procesar_mes_simulacion(año, mes)
+            else:
                 print(f"📅 Procesando {mes:02d}/{año}...")
                 if forzar:
                     print("⚠️  MODO FORZADO activado")
-                
                 resultado = generador.procesar_mes(año, mes, forzar)
                 
-                # Mostrar resultados
-                if resultado['ya_procesado']:
-                    print(f"ℹ️  El mes {mes:02d}/{año} ya había sido procesado")
-                else:
-                    print(f"\n✅ Procesamiento completado:")
-                    print(f"   📊 Cuotas: {resultado['cuotas_generadas']} (${resultado['monto_cuotas']:,.2f})")
-                    print(f"   💰 Intereses: {resultado['intereses_generados']} (${resultado['monto_intereses']:,.2f})")
-                    print(f"   🔄 Saldos a favor aplicados: {resultado['saldos_favor_aplicados']} (${resultado['monto_saldos_favor']:,.2f})")
-                
-                if resultado['errores']:
-                    print(f"\n❌ Errores encontrados:")
-                    for error in resultado['errores']:
-                        print(f"   - {error}")
-                        
-            except ValueError:
-                print("❌ Error: año y mes deben ser números enteros")
-                sys.exit(1)
-        else:
-            # Procesar mes actual
-            hoy = date.today()
-            print(f"📅 Procesando mes actual: {hoy.month:02d}/{hoy.year}")
-            
-            resultado = generador.procesar_mes(hoy.year, hoy.month)
-            
-            print(f"\n✅ Resultado:")
-            print(f"   📊 Cuotas: {resultado['cuotas_generadas']} (${resultado['monto_cuotas']:,.2f})")
-            print(f"   💰 Intereses: {resultado['intereses_generados']} (${resultado['monto_intereses']:,.2f})")
-            print(f"   🔄 Saldos a favor aplicados: {resultado['saldos_favor_aplicados']} (${resultado['monto_saldos_favor']:,.2f})")
-            
-            if resultado['ya_procesado']:
-                print("ℹ️  El mes ya había sido procesado")
-                
-    except Exception as e:
-        print(f"❌ Error crítico: {e}")
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
+        except ValueError:
+            print("❌ Error: año y mes deben ser números enteros")
+            print("Uso: python generador_pagos.py <año> <mes> [forzar|simular]")
+            sys.exit(1)
+    else:
+        print("Uso: python generador_pagos.py <año> <mes> [forzar|simular]")
+        print("Ejemplos:")
+        print("  python generador_pagos.py 2025 7 simular    # Simular julio 2025")
+        print("  python generador_pagos.py 2025 7 forzar     # Procesar julio 2025 (forzado)")
+        print("  python generador_pagos.py 2025 7            # Procesar julio 2025")
 
 
 if __name__ == "__main__":
