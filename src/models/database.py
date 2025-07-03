@@ -4,17 +4,28 @@ from contextlib import contextmanager
 from sqlmodel import Session, create_engine, SQLModel
 from typing import Generator
 
+from supabase import create_client, Client
+
 
 # Cargar variables de entorno desde el archivo .env en la raíz del proyecto
 load_dotenv()
 
-url_database = os.environ.get('DATABASE_URL')
+DATABASE_URL = os.environ.get('DATABASE_URL')
 
-if not url_database:
-    raise ValueError("DATABASE_URL no está configurada en las variables de entorno")
+SUPABASE_URL = os.getenv('SUPABASE_URL')
+SUPABASE_KEY = os.getenv('SUPABASE_KEY')
+SUPABASE_BUCKET = os.getenv('SUPABASE_BUCKET')
+
+if not all([SUPABASE_URL, SUPABASE_KEY, DATABASE_URL, SUPABASE_BUCKET]):
+    raise EnvironmentError("One or more Supabase environment variables are missing.")
+
+# Initialize Supabase client
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
-engine = create_engine(url_database, echo=False)
+
+
+engine = create_engine(DATABASE_URL, echo=False)
 
 class DatabaseManager:
     def __init__(self, engine):

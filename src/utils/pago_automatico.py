@@ -48,11 +48,7 @@ class PagoAutomaticoService:
         # Verificar que el apartamento existe
         apartamento = session.get(Apartamento, apartamento_id)
         if not apartamento:
-            return {
-                "error": "Apartamento no encontrado", 
-                "success": False,
-                "pagos_realizados": []
-            }
+            return {"error": "Apartamento no encontrado", "success": False}
         
         try:
             # Crear registro de pago simple
@@ -79,20 +75,12 @@ class PagoAutomaticoService:
                 "mes_aplicable": fecha_pago.month,
                 "año_aplicable": fecha_pago.year,
                 "referencia": referencia,
-                "mensaje": f"Pago registrado exitosamente: ${monto_pago:,.2f}",
-                "pagos_realizados": [{
-                    "concepto_id": self.concepto_pago_cuota_id,
-                    "periodo": f"{fecha_pago.month:02d}/{fecha_pago.year}",
-                    "monto": monto_pago,
-                    "tipo": "Pago",
-                    "descripcion": f"Pago automático ${monto_pago:,.2f}"
-                }]
+                "mensaje": f"Pago registrado exitosamente: ${monto_pago:,.2f}"
             }
             
         except Exception as e:
             session.rollback()
             return {
                 "error": f"Error al registrar el pago: {str(e)}",
-                "success": False,
-                "pagos_realizados": []
+                "success": False
             }

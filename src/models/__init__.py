@@ -1,5 +1,5 @@
 # Importaciones de la configuración de base de datos
-from .database import db_manager, DatabaseManager, create_db_and_tables
+from .database import db_manager, DatabaseManager, create_db_and_tables, supabase, SUPABASE_BUCKET
 
 # Importaciones de modelos de usuarios
 from .user import Usuario, Propietario, RolUsuarioEnum
@@ -46,4 +46,8 @@ __all__ = [
     "db_manager",
     "DatabaseManager",
     "create_db_and_tables"
+
+    # Supabase client
+    "supabase",
+    "SUPABASE_BUCKET"
 ]
