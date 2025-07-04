@@ -9,7 +9,7 @@ from src.models import (
     db_manager, Usuario, Propietario, Apartamento, Concepto,
     RolUsuarioEnum, TipoMovimientoEnum,
     RegistroFinancieroApartamento, CuotaConfiguracion, ControlProcesamientoMensual,
-    TasaInteresMora, GastoComunidad, PresupuestoAnual, supabase, SUPABASE_BUCKET
+    TasaInteresMora, GastoComunidad, PresupuestoAnual, supabase, SUPABASE_BUCKET, SUPABASE_URL
 )
 from src.auth_dependencies import  admin_required_web
 
@@ -1100,95 +1100,99 @@ async def vista_gastos_comunidad(request: Request, session: Annotated[Session, D
     })
 
 @router.post("/admin/gastos/crear")
-async def crear_gasto_comunidad(request: Request, session: Annotated[Session, Depends(db_manager.get_session)],
-                               User: Annotated[Usuario, Depends(admin_required_web)],
-                               fecha_gasto: date = Form(...),
-                               concepto_id: int = Form(...),
-                               monto: float = Form(...),
-                               descripcion_adicional: Optional[str] = Form(None),
-                               presupuesto_anual_id: Optional[int] = Form(None),
-                               documento_soporte: Optional[UploadFile] = File(None)):
-    """Crear nuevo gasto de la comunidad"""
+async def crear_gasto_comunidad(
+    request: Request, 
+    session: Annotated[Session, Depends(db_manager.get_session)],
+    user: Annotated[Usuario, Depends(admin_required_web)],
+    fecha_gasto: date = Form(...),
+    concepto_id: int = Form(...),
+    monto: float = Form(...),
+    descripcion_adicional: Optional[str] = Form(None),
+    presupuesto_anual_id: Optional[int] = Form(None),
+    documento_soporte: Optional[UploadFile] = File(None)
+):
+    """Crear nuevo gasto de la comunidad (versión refactorizada)"""
     
+    # 1. Validaciones iniciales
+    if monto <= 0:
+        return RedirectResponse(url="/admin/gastos?error=invalid_amount", status_code=status.HTTP_302_FOUND)
+    
+    if not session.get(Concepto, concepto_id):
+        return RedirectResponse(url="/admin/gastos?error=concepto_not_found", status_code=status.HTTP_302_FOUND)
+
+    # 2. Preparar datos del gasto
+    from decimal import Decimal
+    
+    documento_path = None
+    file_content = None
+    mime_type = None
+
+    # 3. Procesar el documento si existe
+    if documento_soporte and documento_soporte.filename:
+        # Validar tipo de archivo
+        allowed_mime_types = {
+            "pdf": "application/pdf", "jpg": "image/jpeg", "jpeg": "image/jpeg",
+            "png": "image/png", "webp": "image/webp", "heic": "image/heic",
+            "heif": "image/heif", "gif": "image/gif"
+        }
+        file_extension = documento_soporte.filename.split(".")[-1].lower()
+        mime_type = allowed_mime_types.get(file_extension)
+
+        if not mime_type:
+            return RedirectResponse(url="/admin/gastos?error=invalid_file_type", status_code=status.HTTP_302_FOUND)
+        
+        # Leer el contenido del archivo para subirlo después
+        file_content = await documento_soporte.read()
+        # El path se definirá después de tener el ID del gasto
+        documento_path = f"gastos/{file_extension}" # Path temporal
+
+    # 4. Crear y guardar el gasto en una transacción
     try:
-        # Validar que el monto sea positivo
-        if monto <= 0:
-            return RedirectResponse(
-                url="/admin/gastos?error=invalid_amount",
-                status_code=status.HTTP_302_FOUND
-            )
-        
-        # Validar que el concepto existe
-        concepto = session.get(Concepto, concepto_id)
-        if not concepto:
-            return RedirectResponse(
-                url="/admin/gastos?error=concepto_not_found",
-                status_code=status.HTTP_302_FOUND
-            )
-        
-        # Procesar documento de soporte si se subió
-        documento_path = None
-        if documento_soporte and documento_soporte.filename:
-            # Por ahora, solo guardamos el nombre del archivo
-            # En el futuro se puede implementar el almacenamiento real
-            documento_path = f"gastos/{datetime.now().strftime('%Y%m%d_%H%M%S')}_{documento_soporte.filename}"
-        
-        # Convertir monto a Decimal
-        from decimal import Decimal
-        monto_decimal = Decimal(str(monto))
-        
-        # Extraer mes y año de la fecha
-        mes_gasto = fecha_gasto.month
-        año_gasto = fecha_gasto.year
-        
-        # Validar presupuesto si se especificó
-        if presupuesto_anual_id and presupuesto_anual_id != "":
-            presupuesto = session.get(PresupuestoAnual, presupuesto_anual_id)
-            if not presupuesto:
-                presupuesto_anual_id = None
-        else:
+        # Validar presupuesto (solo si se proporciona)
+        if presupuesto_anual_id and not session.get(PresupuestoAnual, presupuesto_anual_id):
             presupuesto_anual_id = None
-        
-        # Crear el gasto
+
         nuevo_gasto = GastoComunidad(
             fecha_gasto=fecha_gasto,
             concepto_id=concepto_id,
             descripcion_adicional=descripcion_adicional,
-            monto=monto_decimal,
-            documento_soporte_path=documento_path,
+            monto=Decimal(str(monto)),
+            documento_soporte_path=documento_path, # Path aún no final
             presupuesto_anual_id=presupuesto_anual_id,
-            mes_gasto=mes_gasto,
-            año_gasto=año_gasto
+            mes_gasto=fecha_gasto.month,
+            año_gasto=fecha_gasto.year
         )
-        
         session.add(nuevo_gasto)
         session.commit()
         session.refresh(nuevo_gasto)
-        if documento_soporte and documento_soporte.filename != "":
-           file_extension = documento_soporte.filename.split(".")[-1].lower()
-           file_name = f"{str(nuevo_gasto.id)}.{file_extension}"
-           file_content = await documento_soporte.read()
-           res = None
-           try:
-               res = supabase.storage.from_(SUPABASE_BUCKET).upload(file=file_content, path=f"salida/{file_name}", file_options={"cache-control": 3600})
-           except Exception as e:
-               print(f"Error subiendo documento a Supabase: {e}")
-               return RedirectResponse(
-                   url="/admin/gastos?error=upload_failed",
-                   status_code=status.HTTP_302_FOUND
-               )
-        return RedirectResponse(
-            url=f"/admin/gastos?success=created&año={año_gasto}&mes={mes_gasto}",
-            status_code=status.HTTP_302_FOUND
-        )
-        
+
+        # 5. Subir el archivo a Supabase (si existe)
+        if file_content:
+            # Definir el nombre final del archivo usando el ID del gasto
+            final_file_name = f"gastos/{nuevo_gasto.id}_{datetime.now().strftime('%Y%m%d')}.{file_extension}"
+            
+            # Subir a Supabase
+            supabase.storage.from_(SUPABASE_BUCKET).upload(
+                file=file_content,
+                path=final_file_name,
+                file_options={"cache-control": "3600", "content-type": mime_type}
+            )
+            
+            # Actualizar el path en la base de datos con la ruta final
+            nuevo_gasto.documento_soporte_path = f"{SUPABASE_URL}/storage/v1/object/public/{SUPABASE_BUCKET}/{final_file_name}"
+            session.add(nuevo_gasto)
+            session.commit()
+
     except Exception as e:
         session.rollback()
         print(f"Error creando gasto: {e}")
-        return RedirectResponse(
-            url="/admin/gastos?error=database",
-            status_code=status.HTTP_302_FOUND
-        )
+        # Si la subida falla, el rollback deshace la creación del gasto
+        return RedirectResponse(url="/admin/gastos?error=database_or_upload_failed", status_code=status.HTTP_302_FOUND)
+
+    return RedirectResponse(
+        url=f"/admin/gastos?success=created&año={nuevo_gasto.año_gasto}&mes={nuevo_gasto.mes_gasto}",
+        status_code=status.HTTP_302_FOUND
+    )
 
 @router.post("/admin/gastos/{gasto_id}/editar")
 async def editar_gasto_comunidad(gasto_id: int,

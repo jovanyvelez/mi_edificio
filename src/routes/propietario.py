@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Request, HTTPException, status, Depends
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import APIRouter, Request, HTTPException, Depends
+from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 from typing import Annotated
@@ -12,7 +12,6 @@ from src.settings import settings
 from src.utils.propietario_utils import (
     get_estado_cuenta_completo, 
     get_cartera_morosa, 
-    get_apartamentos_propietario
 )
 
 # Configurar plantillas
@@ -175,39 +174,3 @@ async def detalle_apartamento(
     })
 
 
-@router.get("/ayuda", response_class=HTMLResponse)
-async def ayuda_propietario(
-    request: Request,
-    current_user: Annotated[Usuario, Depends(propietario_or_admin_required_web)]
-):
-    """Vista de ayuda e instructivo para propietarios"""
-    
-    # Leer el contenido del archivo markdown
-    import os
-    
-    # Ruta del archivo de instructivo
-    instructivo_path = Path(__file__).parent.parent.parent / "INSTRUCTIVO_PROPIETARIOS.md"
-    
-    instructivo_content = ""
-    instructivo_html = ""
-    
-    if instructivo_path.exists():
-        with open(instructivo_path, 'r', encoding='utf-8') as f:
-            instructivo_content = f.read()
-        
-        # Convertir markdown a HTML usando el procesador markdown
-        try:
-            import markdown
-            md = markdown.Markdown(extensions=['codehilite', 'fenced_code', 'tables', 'toc'])
-            instructivo_html = md.convert(instructivo_content)
-        except ImportError:
-            # Si markdown no está disponible, usar conversión básica
-            instructivo_html = instructivo_content.replace('\n', '<br>')
-    else:
-        instructivo_html = "<h1>Instructivo no encontrado</h1><p>El archivo de instructivo no está disponible en este momento.</p>"
-    
-    return templates.TemplateResponse("propietario/ayuda.html", {
-        "request": request,
-        "current_user": current_user,
-        "instructivo_html": instructivo_html
-    })
