@@ -1108,7 +1108,7 @@ async def crear_gasto_comunidad(
     concepto_id: int = Form(...),
     monto: float = Form(...),
     descripcion_adicional: Optional[str] = Form(None),
-    presupuesto_anual_id: Optional[int] = Form(None),
+    presupuesto_anual_id: int = Form(...),  # Ahora es obligatorio
     documento_soporte: Optional[UploadFile] = File(None)
 ):
     """Crear nuevo gasto de la comunidad (versión refactorizada)"""
@@ -1119,6 +1119,16 @@ async def crear_gasto_comunidad(
     
     if not session.get(Concepto, concepto_id):
         return RedirectResponse(url="/admin/gastos?error=concepto_not_found", status_code=status.HTTP_302_FOUND)
+    
+    # Validar que el presupuesto existe y corresponde al año actual
+    presupuesto = session.get(PresupuestoAnual, presupuesto_anual_id)
+    if not presupuesto:
+        return RedirectResponse(url="/admin/gastos?error=presupuesto_not_found", status_code=status.HTTP_302_FOUND)
+    
+    # Verificar que el presupuesto sea del año actual para evitar problemas históricos
+    año_actual = datetime.now().year
+    if presupuesto.año != año_actual:
+        return RedirectResponse(url="/admin/gastos?error=presupuesto_invalid_year", status_code=status.HTTP_302_FOUND)
 
     # 2. Preparar datos del gasto
     from decimal import Decimal
@@ -1148,17 +1158,14 @@ async def crear_gasto_comunidad(
 
     # 4. Crear y guardar el gasto en una transacción
     try:
-        # Validar presupuesto (solo si se proporciona)
-        if presupuesto_anual_id and not session.get(PresupuestoAnual, presupuesto_anual_id):
-            presupuesto_anual_id = None
-
+        # El presupuesto ya fue validado anteriormente
         nuevo_gasto = GastoComunidad(
             fecha_gasto=fecha_gasto,
             concepto_id=concepto_id,
             descripcion_adicional=descripcion_adicional,
             monto=Decimal(str(monto)),
             documento_soporte_path=documento_path, # Path aún no final
-            presupuesto_anual_id=presupuesto_anual_id,
+            presupuesto_anual_id=presupuesto_anual_id,  # Siempre requerido
             mes_gasto=fecha_gasto.month,
             año_gasto=fecha_gasto.year
         )
@@ -1203,7 +1210,7 @@ async def editar_gasto_comunidad(gasto_id: int,
                                  concepto_id: int = Form(...),
                                  monto: float = Form(...),
                                  descripcion_adicional: Optional[str] = Form(None),
-                                 presupuesto_anual_id: Optional[int] = Form(None)):
+                                 presupuesto_anual_id: int = Form(...)):  # Ahora es obligatorio
     """Editar gasto existente de la comunidad"""
     
     try:
@@ -1230,6 +1237,22 @@ async def editar_gasto_comunidad(gasto_id: int,
                 status_code=status.HTTP_302_FOUND
             )
         
+        # Validar que el presupuesto existe y corresponde al año actual
+        presupuesto = session.get(PresupuestoAnual, presupuesto_anual_id)
+        if not presupuesto:
+            return RedirectResponse(
+                url="/admin/gastos?error=presupuesto_not_found",
+                status_code=status.HTTP_302_FOUND
+            )
+        
+        # Verificar que el presupuesto sea del año actual
+        año_actual = datetime.now().year
+        if presupuesto.año != año_actual:
+            return RedirectResponse(
+                url="/admin/gastos?error=presupuesto_invalid_year",
+                status_code=status.HTTP_302_FOUND
+            )
+        
         # Actualizar campos
         from decimal import Decimal
         gasto.fecha_gasto = fecha_gasto
@@ -1238,14 +1261,7 @@ async def editar_gasto_comunidad(gasto_id: int,
         gasto.descripcion_adicional = descripcion_adicional
         gasto.mes_gasto = fecha_gasto.month
         gasto.año_gasto = fecha_gasto.year
-        
-        # Validar presupuesto si se especificó
-        if presupuesto_anual_id and presupuesto_anual_id != "":
-            presupuesto = session.get(PresupuestoAnual, presupuesto_anual_id)
-            if presupuesto:
-                gasto.presupuesto_anual_id = presupuesto_anual_id
-        else:
-            gasto.presupuesto_anual_id = None
+        gasto.presupuesto_anual_id = presupuesto_anual_id  # Siempre requerido
         
         session.add(gasto)
         session.commit()

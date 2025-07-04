@@ -243,7 +243,7 @@
         padding: 1.5rem;
     }
     
-    /* Table styles */
+    /* Table styles - Desktop/Tablet */
     .table-container {
         overflow-x: auto;
     }
@@ -275,6 +275,124 @@
         background: #f1f5f9;
         font-weight: 700;
         border-top: 2px solid #3b82f6;
+    }
+    
+    /* Mobile Cards - se muestran solo en móviles */
+    .mobile-cards {
+        display: none;
+        gap: 1rem;
+    }
+    
+    .mobile-gasto-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.25rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        border-left: 4px solid #dc2626;
+        transition: all 0.3s ease;
+    }
+    
+    .mobile-gasto-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    }
+    
+    .mobile-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+        gap: 1rem;
+    }
+    
+    .mobile-card-title {
+        font-weight: 600;
+        color: #374151;
+        margin: 0;
+        font-size: 1.1rem;
+    }
+    
+    .mobile-card-date {
+        color: #6b7280;
+        font-size: 0.9rem;
+        margin: 0.25rem 0 0 0;
+    }
+    
+    .mobile-card-amount {
+        background: #dc2626;
+        color: white;
+        padding: 0.5rem 0.75rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 1rem;
+        white-space: nowrap;
+    }
+    
+    .mobile-card-body {
+        margin-bottom: 1rem;
+    }
+    
+    .mobile-card-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+        gap: 1rem;
+    }
+    
+    .mobile-card-label {
+        font-weight: 600;
+        color: #6b7280;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    .mobile-card-value {
+        color: #374151;
+        font-size: 0.9rem;
+        text-align: right;
+        flex: 1;
+    }
+    
+    .mobile-card-description {
+        background: #f8f9fa;
+        padding: 0.75rem;
+        border-radius: 6px;
+        color: #6b7280;
+        font-size: 0.9rem;
+        margin: 0.75rem 0;
+        border-left: 3px solid #e5e7eb;
+    }
+    
+    .mobile-card-actions {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: flex-end;
+        padding-top: 1rem;
+        border-top: 1px solid #e5e7eb;
+    }
+    
+    /* Total card para móviles */
+    .mobile-total-card {
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        color: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        text-align: center;
+        margin-top: 1rem;
+    }
+    
+    .mobile-total-title {
+        font-size: 1rem;
+        margin: 0 0 0.5rem 0;
+        opacity: 0.9;
+    }
+    
+    .mobile-total-amount {
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin: 0;
     }
     
     .amount-badge {
@@ -470,20 +588,71 @@
         }
         
         .stats-grid {
-            grid-template-columns: 1fr;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
         }
         
         .filter-form {
             grid-template-columns: 1fr;
         }
         
+        /* Ocultar tabla en móviles y mostrar cards */
         .table-container {
+            display: none;
+        }
+        
+        .mobile-cards {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Ajustar tamaño de stats cards */
+        .stats-value {
+            font-size: 1.5rem;
+        }
+        
+        .stats-title {
             font-size: 0.8rem;
+        }
+        
+        /* Ajustar botones en móviles */
+        .btn {
+            padding: 0.6rem 1rem;
+            font-size: 0.85rem;
+        }
+        
+        .btn-small {
+            padding: 0.4rem 0.6rem;
+            font-size: 0.75rem;
+        }
+        
+        /* Ajustar modales en móviles */
+        .modal {
+            margin: 1rem;
+            max-height: 95vh;
+        }
+        
+        .modal-body {
+            padding: 1rem;
+        }
+        
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    @media (min-width: 769px) and (max-width: 1024px) {
+        /* Tablet - mantener tabla pero ajustar */
+        .table {
+            font-size: 0.85rem;
         }
         
         .table th,
         .table td {
-            padding: 0.5rem;
+            padding: 0.75rem;
+        }
+        
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
         }
     }
 </style>
@@ -534,6 +703,10 @@
                 El concepto seleccionado no existe.
             {% elif request.query_params.get('error') == 'gasto_not_found' %}
                 El gasto especificado no existe.
+            {% elif request.query_params.get('error') == 'presupuesto_not_found' %}
+                El presupuesto seleccionado no existe.
+            {% elif request.query_params.get('error') == 'presupuesto_invalid_year' %}
+                El presupuesto debe corresponder al año actual.
             {% elif request.query_params.get('error') == 'database' %}
                 Error en la base de datos. Intente nuevamente.
             {% else %}
@@ -609,6 +782,7 @@
         </div>
         <div class="card-body">
             {% if gastos_mes %}
+                <!-- Tabla para Desktop/Tablet -->
                 <div class="table-container">
                     <table class="table">
                         <thead>
@@ -667,7 +841,9 @@
                                                 🗑️
                                             </button>
                                             {% if gasto.documento_soporte_path %}
-                                                <button class="btn btn-outline btn-small" title="Tiene documento adjunto">
+                                                <button class="btn btn-outline btn-small" 
+                                                        title="Ver documento adjunto"
+                                                        onclick="window.open('{{ gasto.documento_soporte_path }}', '_blank')">
                                                     📎
                                                 </button>
                                             {% endif %}
@@ -688,6 +864,79 @@
                             </tr>
                         </tfoot>
                     </table>
+                </div>
+
+                <!-- Cards para Mobile -->
+                <div class="mobile-cards">
+                    {% for gasto in gastos_mes %}
+                        <div class="mobile-gasto-card">
+                            <div class="mobile-card-header">
+                                <div>
+                                    <h4 class="mobile-card-title">{{ gasto.concepto.nombre }}</h4>
+                                    <p class="mobile-card-date">{{ gasto.fecha_gasto.strftime('%d/%m/%Y') }}</p>
+                                </div>
+                                <span class="mobile-card-amount">
+                                    ${{ "{:,.0f}".format(gasto.monto) }}
+                                </span>
+                            </div>
+                            
+                            <div class="mobile-card-body">
+                                {% if gasto.presupuesto_anual %}
+                                <div class="mobile-card-row">
+                                    <span class="mobile-card-label">Presupuesto</span>
+                                    <span class="mobile-card-value">{{ gasto.presupuesto_anual.año }}</span>
+                                </div>
+                                {% endif %}
+                                
+                                {% if gasto.documento_soporte_path %}
+                                <div class="mobile-card-row">
+                                    <span class="mobile-card-label">Documento</span>
+                                    <span class="mobile-card-value">
+                                        <button class="btn btn-outline btn-small" 
+                                                style="padding: 0.25rem 0.5rem; font-size: 0.75rem;"
+                                                title="Ver documento adjunto"
+                                                onclick="window.open('{{ gasto.documento_soporte_path }}', '_blank')">
+                                            📎 Ver Documento
+                                        </button>
+                                    </span>
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            {% if gasto.descripcion_adicional %}
+                            <div class="mobile-card-description">
+                                {{ gasto.descripcion_adicional }}
+                            </div>
+                            {% endif %}
+                            
+                            <div class="mobile-card-actions">
+                                <button class="btn btn-outline btn-small" 
+                                        data-gasto-id="{{ gasto.id }}"
+                                        data-fecha="{{ gasto.fecha_gasto.strftime('%Y-%m-%d') }}"
+                                        data-concepto-id="{{ gasto.concepto_id }}"
+                                        data-concepto-nombre="{{ gasto.concepto.nombre }}"
+                                        data-monto="{{ gasto.monto }}"
+                                        data-descripcion="{{ gasto.descripcion_adicional or '' }}"
+                                        data-presupuesto-id="{{ gasto.presupuesto_anual_id or '' }}"
+                                        onclick="editarGasto(this)">
+                                    ✏️ Editar
+                                </button>
+                                <button class="btn btn-danger btn-small" 
+                                        data-gasto-id="{{ gasto.id }}"
+                                        data-concepto-nombre="{{ gasto.concepto.nombre }}"
+                                        data-monto="{{ gasto.monto }}"
+                                        onclick="confirmarEliminar(this)">
+                                    🗑️ Eliminar
+                                </button>
+                            </div>
+                        </div>
+                    {% endfor %}
+                    
+                    <!-- Total card para móviles -->
+                    <div class="mobile-total-card">
+                        <h3 class="mobile-total-title">Total del Mes</h3>
+                        <p class="mobile-total-amount">${{ "{:,.0f}".format(total_gastos_mes) }}</p>
+                    </div>
                 </div>
             {% else %}
                 <div class="empty-state">
@@ -776,21 +1025,23 @@
                 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="presupuesto_anual_id" class="form-label">Presupuesto</label>
-                        <select class="form-control" id="presupuesto_anual_id" name="presupuesto_anual_id">
-                            <option value="">Sin asociar a presupuesto</option>
+                        <label for="presupuesto_anual_id" class="form-label">Presupuesto <span style="color: #dc2626;">*</span></label>
+                        <select class="form-control" id="presupuesto_anual_id" name="presupuesto_anual_id" required>
+                            <option value="">Seleccione un presupuesto</option>
                             {% for presupuesto in presupuestos %}
-                                <option value="{{ presupuesto.id }}">
-                                    Presupuesto {{ presupuesto.año }}
-                                </option>
+                                {% if presupuesto.año == año_actual %}
+                                    <option value="{{ presupuesto.id }}">
+                                        Presupuesto {{ presupuesto.año }} (Actual)
+                                    </option>
+                                {% endif %}
                             {% endfor %}
                         </select>
                     </div>
                     <div class="form-group">
                         <label for="documento_soporte" class="form-label">Documento de Soporte</label>
                         <input type="file" class="form-control" id="documento_soporte" name="documento_soporte" 
-                               accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
-                        <small style="color: #6b7280;">PDF, imágenes o documentos de Word</small>
+                               accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.heif,.gif">
+                        <small style="color: #6b7280;">PDF o imágenes (JPG, PNG, WebP, HEIC, GIF)</small>
                     </div>
                 </div>
             </div>
@@ -846,13 +1097,15 @@
                 </div>
                 
                 <div class="form-group">
-                    <label for="edit_presupuesto_anual_id" class="form-label">Presupuesto</label>
-                    <select class="form-control" id="edit_presupuesto_anual_id" name="presupuesto_anual_id">
-                        <option value="">Sin asociar a presupuesto</option>
+                    <label for="edit_presupuesto_anual_id" class="form-label">Presupuesto <span style="color: #dc2626;">*</span></label>
+                    <select class="form-control" id="edit_presupuesto_anual_id" name="presupuesto_anual_id" required>
+                        <option value="">Seleccione un presupuesto</option>
                         {% for presupuesto in presupuestos %}
-                            <option value="{{ presupuesto.id }}">
-                                Presupuesto {{ presupuesto.año }}
-                            </option>
+                            {% if presupuesto.año == año_actual %}
+                                <option value="{{ presupuesto.id }}">
+                                    Presupuesto {{ presupuesto.año }} (Actual)
+                                </option>
+                            {% endif %}
                         {% endfor %}
                     </select>
                 </div>
