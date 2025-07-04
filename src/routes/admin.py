@@ -9,7 +9,7 @@ from src.models import (
     db_manager, Usuario, Propietario, Apartamento, Concepto,
     RolUsuarioEnum, TipoMovimientoEnum,
     RegistroFinancieroApartamento, CuotaConfiguracion, ControlProcesamientoMensual,
-    TasaInteresMora, GastoComunidad, PresupuestoAnual
+    TasaInteresMora, GastoComunidad, PresupuestoAnual, supabase, SUPABASE_BUCKET
 )
 from src.auth_dependencies import  admin_required_web
 
@@ -1163,7 +1163,20 @@ async def crear_gasto_comunidad(request: Request, session: Annotated[Session, De
         
         session.add(nuevo_gasto)
         session.commit()
-        
+        session.refresh(nuevo_gasto)
+        if documento_soporte and documento_soporte.filename != "":
+           file_extension = documento_soporte.filename.split(".")[-1].lower()
+           file_name = f"{str(nuevo_gasto.id)}.{file_extension}"
+           file_content = await documento_soporte.read()
+           res = None
+           try:
+               res = supabase.storage.from_(SUPABASE_BUCKET).upload(file=file_content, path=f"salida/{file_name}", file_options={"cache-control": 3600})
+           except Exception as e:
+               print(f"Error subiendo documento a Supabase: {e}")
+               return RedirectResponse(
+                   url="/admin/gastos?error=upload_failed",
+                   status_code=status.HTTP_302_FOUND
+               )
         return RedirectResponse(
             url=f"/admin/gastos?success=created&año={año_gasto}&mes={mes_gasto}",
             status_code=status.HTTP_302_FOUND
