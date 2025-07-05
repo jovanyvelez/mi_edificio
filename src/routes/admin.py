@@ -1176,7 +1176,7 @@ async def crear_gasto_comunidad(
         # 5. Subir el archivo a Supabase (si existe)
         if file_content:
             # Definir el nombre final del archivo usando el ID del gasto
-            final_file_name = f"gastos/{nuevo_gasto.id}_{datetime.now().strftime('%Y%m%d')}.{file_extension}"
+            final_file_name = f"gastos/{nuevo_gasto.id}_{fecha_gasto.strftime('%Y%m%d')}.{file_extension}"
             
             # Subir a Supabase
             supabase.storage.from_(SUPABASE_BUCKET).upload(
