@@ -462,7 +462,7 @@
 <div class="procesar-container">
     <div class="procesar-header">
         <h1>💳 Procesar Pagos de Cuotas Ordinarias</h1>
-        <a href="/admin/pagos" class="back-btn">
+        <a href="/" class="back-btn">
             ← Volver a Pagos
         </a>
     </div>
@@ -486,9 +486,32 @@
     <div class="error-alert">
         <span style="font-size: 1.2rem;">⚠️</span>
         <div>
-            <strong>Error al procesar el pago</strong>
-            {% if request.query_params.get('details') %}
-            <br>{{ request.query_params.get('details') }}
+            {% set error_type = request.query_params.get('error') %}
+            {% if error_type == 'no_file' %}
+                <strong>Documento de soporte requerido</strong>
+                <br>Debe adjuntar un documento de soporte para procesar el pago automático
+            {% elif error_type == 'invalid_file_type' %}
+                <strong>Tipo de archivo no válido</strong>
+                <br>Solo se permiten archivos PDF o imágenes (JPG, PNG, GIF, WebP)
+            {% elif error_type == 'file_too_large' %}
+                <strong>Archivo demasiado grande</strong>
+                <br>El archivo no puede superar los 5MB
+            {% elif error_type == 'upload_failed' %}
+                <strong>Error al subir el archivo</strong>
+                <br>No se pudo guardar el documento de soporte. Intente nuevamente.
+            {% elif error_type == 'invalid_amount' %}
+                <strong>Monto inválido</strong>
+                <br>El monto del pago debe ser mayor a cero
+            {% elif error_type == 'processing' %}
+                <strong>Error al procesar el pago</strong>
+                {% if request.query_params.get('details') %}
+                <br>{{ request.query_params.get('details') }}
+                {% endif %}
+            {% else %}
+                <strong>Error al procesar el pago</strong>
+                {% if request.query_params.get('details') %}
+                <br>{{ request.query_params.get('details') }}
+                {% endif %}
             {% endif %}
         </div>
     </div>
@@ -554,6 +577,8 @@
                     <tr data-saldo="{{ item.saldo_total }}" class="fila-apartamento">
                         <td>
                             <div class="apartment-info">{{ item.apartamento.identificador }}</div>
+                            <small style="color: #6c757d;">{{item.apartamento.id}}</small>
+                                <!--small style="color: #6c757d;">Coef: {{ "%.3f"|format(item.apartamento.coeficiente_copropiedad) }}</small-->
                             <!--small style="color: #6c757d;">Coef: {{ "%.3f"|format(item.apartamento.coeficiente_copropiedad) }}</small-->
                         </td>
                         <td>
@@ -703,7 +728,7 @@
             <strong>Cargando información de deuda...</strong>
         </div>
         
-        <form method="post" action="/admin/pagos/pago-automatico" id="formPagoAutomatico">
+        <form method="post" action="/admin/pagos/pago-automatico" id="formPagoAutomatico" enctype="multipart/form-data">
             <input type="hidden" name="apartamento_id" id="apartamentoIdAuto">
             
             <div class="form-group">
@@ -718,6 +743,13 @@
             <div class="form-group">
                 <label class="form-label">Referencia del Pago</label>
                 <input type="text" class="form-input" name="referencia_pago" id="referencia_auto" placeholder="Ej: Transferencia, Cheque #1234, etc.">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Documento de Soporte *</label>
+                <input type="file" class="form-input" name="documento_soporte" id="documento_soporte_auto" 
+                       accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.heif,.gif" required>
+                <small style="color: #6b7280;">PDF o imágenes (JPG, PNG, WebP, HEIC, GIF) - Obligatorio</small>
             </div>
             
             <div style="background: #fff3cd; border: 1px solid #ffc107; color: #664d03; padding: 1rem; border-radius: 10px; margin: 1rem 0;">
@@ -847,6 +879,29 @@ document.getElementById('formPagoAutomatico')?.addEventListener('submit', functi
     
     if (monto <= 0) {
         alert('El monto debe ser mayor a cero');
+        e.preventDefault();
+        return;
+    }
+    
+    // Validar que se haya seleccionado un archivo (obligatorio)
+    const archivo = document.getElementById('documento_soporte_auto').files[0];
+    if (!archivo) {
+        alert('Debe seleccionar un documento de soporte para procesar el pago.');
+        e.preventDefault();
+        return;
+    }
+    
+    // Validar tamaño (5MB máximo)
+    if (archivo.size > 5 * 1024 * 1024) {
+        alert('El archivo es demasiado grande. El tamaño máximo permitido es 5MB.');
+        e.preventDefault();
+        return;
+    }
+    
+    // Validar tipo de archivo
+    const tiposPermitidos = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!tiposPermitidos.includes(archivo.type)) {
+        alert('Tipo de archivo no válido. Solo se permiten archivos PDF o imágenes (JPG, PNG, GIF, WebP).');
         e.preventDefault();
         return;
     }

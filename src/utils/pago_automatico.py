@@ -25,7 +25,7 @@ class PagoAutomaticoService:
         return Decimal(str(round(value, 2))).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
     
     def procesar_pago_automatico(self, session: Session, apartamento_id: int, monto_pago: float, 
-                                fecha_pago: date = None, referencia: str = None) -> Dict:
+                                fecha_pago: date = None, referencia: str = None, documento_soporte_url: str = None) -> Dict:
         """
         Registra un pago automáticamente de forma simple
         
@@ -35,6 +35,7 @@ class PagoAutomaticoService:
             monto_pago: Monto total del pago
             fecha_pago: Fecha del pago (opcional, usa fecha actual si no se especifica)
             referencia: Referencia del pago (opcional)
+            documento_soporte_url: URL del documento de soporte (opcional)
             
         Returns:
             Dict con el resultado del procesamiento
@@ -62,20 +63,25 @@ class PagoAutomaticoService:
                 año_aplicable=fecha_pago.year,     # Año actual de la fecha de pago
                 referencia_pago=referencia,
                 descripcion_adicional=f"Pago automático ${monto_pago:,.2f}",
-                fecha_registro=datetime.now()
+                fecha_registro=datetime.now(),
+                documento_soporte_path=documento_soporte_url
             )
             
             session.add(nuevo_pago)
             session.commit()
+            session.refresh(nuevo_pago)  # Para obtener el ID generado
             
             return {
                 "success": True,
-                "monto_procesado": monto_pago,
-                "fecha_pago": fecha_pago.strftime('%Y-%m-%d'),
+                "registro_id": nuevo_pago.id,
+                "apartamento_id": apartamento_id,
                 "mes_aplicable": fecha_pago.month,
                 "año_aplicable": fecha_pago.year,
+                "monto_procesado": monto_pago,
+                "fecha_pago": fecha_pago.strftime('%Y-%m-%d'),
                 "referencia": referencia,
-                "mensaje": f"Pago registrado exitosamente: ${monto_pago:,.2f}"
+                "mensaje": f"Pago registrado exitosamente: ${monto_pago:,.2f}",
+                "pagos_realizados": [nuevo_pago.id]  # Para compatibilidad con el código existente
             }
             
         except Exception as e:

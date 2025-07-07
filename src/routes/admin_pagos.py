@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, Form, HTTPException, status, Depends
+from fastapi import APIRouter, Request, Form, HTTPException, status, Depends, File, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlmodel import Session, select, func
 from typing import Optional, List, Annotated
@@ -6,7 +6,8 @@ from datetime import datetime, date
 from src.models import (
     db_manager, Apartamento, Concepto, TipoMovimientoEnum,
     RegistroFinancieroApartamento, CuotaConfiguracion,
-    TasaInteresMora, ControlProcesamientoMensual, Usuario
+    TasaInteresMora, ControlProcesamientoMensual, Usuario,
+    supabase, SUPABASE_BUCKET, SUPABASE_URL
 )
 from src.auth_dependencies import admin_required_web
 from src.settings import settings
@@ -725,7 +726,8 @@ async def procesar_pago_automatico(
     user: Annotated[Usuario, Depends(admin_required_web)],
     apartamento_id: int = Form(...),
     monto_pago: float = Form(...),
-    referencia_pago: Optional[str] = Form(None)
+    referencia_pago: Optional[str] = Form(None),
+    documento_soporte: UploadFile = File(...)
 ):
     """Procesar pago automático con distribución inteligente"""
     from src.utils.pago_automatico import PagoAutomaticoService
@@ -738,13 +740,55 @@ async def procesar_pago_automatico(
                 status_code=status.HTTP_302_FOUND
             )
         
-        # Procesar pago automático
+        # Validar archivo obligatorio
+        if not documento_soporte or documento_soporte.size == 0:
+            return RedirectResponse(
+                url="/admin/pagos/procesar?error=no_file",
+                status_code=status.HTTP_302_FOUND
+            )
+        
+        # Validar tipo de archivo
+        allowed_types = {
+            'application/pdf': '.pdf',
+            'image/jpeg': '.jpg',
+            'image/png': '.png',
+            'image/gif': '.gif',
+            'image/webp': '.webp'
+        }
+        
+        if documento_soporte.content_type not in allowed_types:
+            return RedirectResponse(
+                url="/admin/pagos/procesar?error=invalid_file_type",
+                status_code=status.HTTP_302_FOUND
+            )
+        
+        # Validar tamaño (5MB máximo)
+        if documento_soporte.size > 5 * 1024 * 1024:
+            return RedirectResponse(
+                url="/admin/pagos/procesar?error=file_too_large",
+                status_code=status.HTTP_302_FOUND
+            )
+        
+        try:
+            # Leer contenido del archivo y obtener extensión
+            file_content = await documento_soporte.read()
+            file_extension = allowed_types[documento_soporte.content_type]
+            
+        except Exception as e:
+            print(f"Error leyendo archivo: {str(e)}")
+            return RedirectResponse(
+                url="/admin/pagos/procesar?error=upload_failed",
+                status_code=status.HTTP_302_FOUND
+            )
+        
+        # Procesar pago automático primero sin documento
         servicio_pago = PagoAutomaticoService()
         resultado = servicio_pago.procesar_pago_automatico(
             session=session,
             apartamento_id=apartamento_id,
             monto_pago=monto_pago,
-            referencia=referencia_pago
+            referencia=referencia_pago,
+            documento_soporte_url=None  # Por ahora None, lo actualizaremos después
         )
         
         if resultado.get("error"):
@@ -752,6 +796,42 @@ async def procesar_pago_automatico(
                 url=f"/admin/pagos/procesar?error=processing&details={resultado['error']}",
                 status_code=status.HTTP_302_FOUND
             )
+        
+        # Subir archivo con el ID del registro creado
+        try:
+            # Generar nombre del archivo con los datos del registro
+            registro_id = resultado['registro_id']
+            mes_aplicable = resultado['mes_aplicable']
+            año_aplicable = resultado['año_aplicable']
+            
+            file_name = f"{registro_id}_{apartamento_id}_{año_aplicable}{mes_aplicable:02d}{file_extension}"
+            file_path = f"ingresos/{file_name}"
+            
+            # Subir a Supabase
+            response = supabase.storage.from_(SUPABASE_BUCKET).upload(
+                file_path,
+                file_content,
+                file_options={"content-type": documento_soporte.content_type}
+            )
+            
+            if hasattr(response, 'error') and response.error:
+                print(f"Error subiendo archivo: {response.error}")
+                # No retornamos error aquí porque el pago ya se procesó exitosamente
+                print(f"Pago procesado exitosamente pero no se pudo subir el documento")
+            else:
+                # Generar URL pública y actualizar el registro
+                documento_url = f"{SUPABASE_URL}/storage/v1/object/public/{SUPABASE_BUCKET}/{file_path}"
+                
+                # Actualizar el registro con la URL del documento
+                registro_pago = session.get(RegistroFinancieroApartamento, registro_id)
+                if registro_pago:
+                    registro_pago.documento_soporte_path = documento_url
+                    session.add(registro_pago)
+                    session.commit()
+            
+        except Exception as e:
+            print(f"Error subiendo archivo: {str(e)}")
+            # No retornamos error aquí porque el pago ya se procesó exitosamente
         
         # Construir parámetros de respuesta
         params = [
