@@ -10,6 +10,7 @@ import os
 
 import jwt
 from fastapi import Depends, HTTPException, status, Request
+from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordBearer
 from jwt.exceptions import InvalidTokenError
 from passlib.context import CryptContext
@@ -208,14 +209,15 @@ async def get_current_user_required_web(
 ) -> Usuario:
     """
     Dependency para rutas web que requieren autenticación.
-    Busca el token en cookies o headers y lanza excepción si no encuentra uno válido.
+    Busca el token en cookies o headers y redirigi al login si no encuentra uno válido.
     """
     user = await get_current_user_from_cookie_or_header(request, session)
     if not user:
+        # En lugar de lanzar excepción, redirigir al login
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token no encontrado o inválido",
-            headers={"WWW-Authenticate": "Bearer"},
+            status_code=status.HTTP_302_FOUND,
+            detail="Redirecting to login",
+            headers={"Location": "/login?error=token_expired"}
         )
     return user
 
@@ -263,9 +265,11 @@ async def admin_required_web(
 ) -> Usuario:
     """Dependency para rutas web que requiere que el usuario sea administrador"""
     if current_user.rol.upper() != "ADMIN":
+        # Redirigir al login en caso de acceso denegado
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Acceso solo para administradores"
+            status_code=status.HTTP_302_FOUND,
+            detail="Redirecting to login - access denied",
+            headers={"Location": "/login?error=access_denied"}
         )
     return current_user
 
@@ -275,9 +279,11 @@ async def propietario_or_admin_required_web(
 ) -> Usuario:
     """Dependency para rutas web que requiere que el usuario sea propietario o administrador"""
     if current_user.rol.upper() not in ["ADMIN", "PROPIETARIO"]:
+        # Redirigir al login en caso de acceso denegado
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Acceso solo para propietarios o administradores"
+            status_code=status.HTTP_302_FOUND,
+            detail="Redirecting to login - access denied",
+            headers={"Location": "/login?error=access_denied"}
         )
     return current_user
 
@@ -287,9 +293,11 @@ async def inquilino_or_above_required_web(
 ) -> Usuario:
     """Dependency para rutas web que requiere que el usuario sea inquilino, propietario o administrador"""
     if current_user.rol.upper() not in ["ADMIN", "PROPIETARIO", "INQUILINO"]:
+        # Redirigir al login en caso de acceso denegado
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Acceso solo para inquilinos, propietarios o administradores"
+            status_code=status.HTTP_302_FOUND,
+            detail="Redirecting to login - access denied",
+            headers={"Location": "/login?error=access_denied"}
         )
     return current_user
 

@@ -277,6 +277,43 @@
         font-style: normal;
     }
     
+    .documento-soporte {
+        margin-top: 0.5rem;
+    }
+    
+    .documento-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.3rem 0.8rem;
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+    }
+    
+    .documento-link:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+    
+    .documento-link.disabled {
+        background: #9ca3af;
+        color: #6b7280;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+    
+    .documento-link.disabled:hover {
+        transform: none;
+        box-shadow: none;
+    }
+    
     /* Saldos históricos */
     .saldos-historicos {
         display: grid;
@@ -582,9 +619,20 @@
                                         {% endif %}
                                     </div>
                                     
-                                    {% if movimiento.registro.referencia_pago %}
-                                    <div class="movimiento-referencia">
-                                        <strong>Referencia:</strong> {{ movimiento.registro.referencia_pago }}
+                                    {% if movimiento.registro.tipo_movimiento == 'CREDITO' %}
+                                    <div class="documento-soporte">
+                                        {% if movimiento.registro.documento_soporte_path %}
+                                            <a href="{{ movimiento.registro.documento_soporte_path }}" 
+                                               target="_blank" 
+                                               class="documento-link"
+                                               title="Ver documento de soporte">
+                                                📄 Ver Documento
+                                            </a>
+                                        {% else %}
+                                            <span class="documento-link disabled" title="Documento no disponible">
+                                                📄 Doc no disponible
+                                            </span>
+                                        {% endif %}
                                     </div>
                                     {% endif %}
                                 </div>

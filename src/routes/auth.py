@@ -40,9 +40,21 @@ async def dashboard(
 
 
 @router.get("/login", response_class=HTMLResponse)
-async def login_page(request: Request):
+async def login_page(request: Request, error: str = None):
     """Mostrar página de login"""
-    return templates.TemplateResponse("login.html", {"request": request})
+    # Mapear códigos de error a mensajes amigables
+    error_messages = {
+        "access_denied": "No tienes permisos para acceder a esa página. Por favor, inicia sesión con una cuenta autorizada.",
+        "token_expired": "Tu sesión ha expirado. Por favor, inicia sesión nuevamente.",
+        "invalid_token": "Sesión inválida. Por favor, inicia sesión nuevamente."
+    }
+    
+    error_message = error_messages.get(error, error) if error else None
+    
+    return templates.TemplateResponse("login.html", {
+        "request": request,
+        "error": error_message
+    })
 
 
 @router.post("/login")
